@@ -1,0 +1,49 @@
+@import "tailwindcss";
+
+/* Dark mode controlado por classe (não por prefers-color-scheme), porque o
+   tema também pode vir de uma preferência salva por usuário (Usuario.temaBase). */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
+
+  /* Identidade visual do Kronos — fixa, não deve ser alterada (briefing §3). */
+  --color-brand-blue: #2563eb;
+  --color-brand-blue-dark: #1d4ed8;
+  --color-brand-green: var(--accent-override, #22c55e);
+  --color-brand-green-dark: var(--accent-override-dark, #16a34a);
+  --color-bg-light: #f8fafc;
+  --color-bg-dark: #0b1220;
+
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
+  --color-danger-dark: #dc2626;
+}
+
+html {
+  color-scheme: light dark;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-bg-light);
+  color: #0f172a;
+}
+
+.dark body {
+  background-color: var(--color-bg-dark);
+  color: #e2e8f0;
+}
+
+/* Tabular numerals para qualquer dado de tempo/data — horários e datas nunca
+   devem "dançar" de largura em uma lista. */
+.tabular {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+::selection {
+  background-color: color-mix(in srgb, var(--color-brand-blue) 25%, transparent);
+}

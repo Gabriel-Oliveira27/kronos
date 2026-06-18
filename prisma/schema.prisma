@@ -1,0 +1,145 @@
+// Kronos — schema de dados
+//
+// Convenções Prisma 7 + Next.js 16 (Turbopack):
+// - O datasource NÃO leva `url`/`directUrl`: a conexão de runtime é resolvida
+//   via driver adapter (ver src/lib/prisma.ts) e a conexão usada pela CLI
+//   (migrate, studio) é resolvida via prisma.config.ts (DIRECT_URL).
+// - O generator usa `prisma-client-js` SEM `output` customizado de propósito:
+//   o provider novo `prisma-client` (com output fora de node_modules) tem um
+//   bug conhecido de resolução de módulo com o Turbopack do Next 16
+//   ("Cannot find module '.prisma/client/default'"). Gerar no local clássico
+//   (node_modules/@prisma/client) evita esse problema — ver README.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Papel {
+  ADMIN
+  SUPORTE
+  CONFIGURADOR_ESCALA
+  USUARIO
+}
+
+enum TipoDiaEscala {
+  NORMAL
+  PLANTAO
+  HOME_OFFICE
+  FOLGA
+  SABADO_REDUZIDO
+}
+
+enum Visibilidade {
+  PUBLICO
+  PRIVADO
+}
+
+model Usuario {
+  id           String   @id @default(cuid())
+  nomeCompleto String
+  setor        String
+  email        String?  @unique
+  username     String   @unique
+  senhaHash    String
+  papel        Papel    @default(USUARIO)
+  temApp       Boolean  @default(false)
+  fotoUrl      String?
+  temaBase     String?
+  corDestaque  String?
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  escalas        EscalaDia[]
+  conhecimentos  ConhecimentoItem[]
+  registrosPonto RegistroPonto[]
+  logs           LogEvento[]
+
+  @@map("usuarios")
+}
+
+model SolicitacaoAcesso {
+  id           String   @id @default(cuid())
+  nomeCompleto String
+  setor        String
+  email        String?
+  observacoes  String?
+  status       String   @default("pendente")
+  criadoEm     DateTime @default(now())
+
+  @@map("solicitacoes_acesso")
+}
+
+model EscalaDia {
+  id           String        @id @default(cuid())
+  usuarioId    String
+  usuario      Usuario       @relation(fields: [usuarioId], references: [id])
+  data         DateTime
+  tipo         TipoDiaEscala
+  observacao   String?
+  criadoPorId  String
+  atualizadoEm DateTime      @updatedAt
+
+  @@index([usuarioId, data])
+  @@map("escalas_dia")
+}
+
+model ConhecimentoItem {
+  id           String       @id @default(cuid())
+  autorId      String
+  autor        Usuario      @relation(fields: [autorId], references: [id])
+  titulo       String
+  conteudo     String
+  categoria    String?
+  tags         String[]
+  visibilidade Visibilidade @default(PRIVADO)
+  deletadoEm   DateTime?
+  atualizadoEm DateTime     @updatedAt
+  criadoEm     DateTime     @default(now())
+
+  @@index([autorId])
+  @@index([visibilidade])
+  @@map("conhecimento_itens")
+}
+
+model RegistroPonto {
+  id           String    @id @default(cuid())
+  usuarioId    String
+  usuario      Usuario   @relation(fields: [usuarioId], references: [id])
+  data         DateTime
+  tipoEvento   String
+  horarioReal  String?
+  confirmado   Boolean   @default(false)
+  deletadoEm   DateTime?
+  atualizadoEm DateTime  @updatedAt
+
+  @@index([usuarioId, data])
+  @@map("registros_ponto")
+}
+
+model RegistroExcluido {
+  id            String   @id @default(cuid())
+  tabelaOrigem  String
+  registroId    String
+  payload       Json
+  excluidoPorId String
+  excluidoEm    DateTime @default(now())
+
+  @@map("registros_excluidos")
+}
+
+model LogEvento {
+  id        String   @id @default(cuid())
+  usuarioId String?
+  usuario   Usuario? @relation(fields: [usuarioId], references: [id])
+  tipo      String
+  detalhe   Json?
+  criadoEm  DateTime @default(now())
+
+  @@index([tipo])
+  @@index([criadoEm])
+  @@map("logs_evento")
+}
