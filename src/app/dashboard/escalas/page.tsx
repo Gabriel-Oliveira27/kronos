@@ -47,16 +47,27 @@ export default async function EscalasPage({
   }
 
   const params = await searchParams;
-
-  // Determina o mês ativo (padrão: mês atual)
   const hoje = new Date();
   const mesDefault = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}`;
   const mesAtivo = params.mes && /^\d{4}-\d{2}$/.test(params.mes) ? params.mes : mesDefault;
 
   const [anoAtivo, mesNumero] = mesAtivo.split("-").map(Number);
 
-  const inicio = new Date(anoAtivo, mesNumero - 1, 1);
-  const fim = new Date(anoAtivo, mesNumero, 0, 23, 59, 59, 999);
+  // ─── FIX TIMEZONE ────────────────────────────────────────────────────────
+  // new Date(ano, mes-1, dia) usa o horário LOCAL do servidor.  No Brasil
+  // (UTC-3) isso cria um Date que é 3h à frente em UTC comparado às datas
+  // armazenadas, que foram salvas via z.coerce.date("YYYY-MM-DD") e portanto
+  // ficam em UTC midnight.  Resultado: a query pula tudo que está em 00:00Z
+  // porque o início da janela já está em 03:00Z.
+  //
+  // Solução: montar o início/fim direto em UTC usando strings ISO explícitas.
+  const mesStr = String(mesNumero).padStart(2, "0");
+  const ultimoDia = new Date(anoAtivo, mesNumero, 0).getDate();
+  const ultimoDiaStr = String(ultimoDia).padStart(2, "0");
+  const inicio = new Date(`${anoAtivo}-${mesStr}-01T00:00:00.000Z`);
+  const fim = new Date(`${anoAtivo}-${mesStr}-${ultimoDiaStr}T23:59:59.999Z`);
+  // ─────────────────────────────────────────────────────────────────────────
+
   const dias = diasDoMes(anoAtivo, mesNumero);
 
   const mesAnterior = moverMes(mesAtivo, -1);
@@ -75,7 +86,6 @@ export default async function EscalasPage({
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Cabeçalho com navegação de mês */}
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="font-display text-2xl font-semibold capitalize text-slate-900 dark:text-white">
@@ -87,19 +97,13 @@ export default async function EscalasPage({
         </div>
         <div className="flex gap-2">
           <Link href={`/dashboard/escalas?mes=${mesAnterior}`}>
-            <Button variant="outline" size="sm">
-              ← Mês anterior
-            </Button>
+            <Button variant="outline" size="sm">← Mês anterior</Button>
           </Link>
           <Link href="/dashboard/escalas">
-            <Button variant="ghost" size="sm">
-              Mês atual
-            </Button>
+            <Button variant="ghost" size="sm">Mês atual</Button>
           </Link>
           <Link href={`/dashboard/escalas?mes=${mesSeguinte}`}>
-            <Button variant="outline" size="sm">
-              Próximo mês →
-            </Button>
+            <Button variant="outline" size="sm">Próximo mês →</Button>
           </Link>
         </div>
       </div>
@@ -108,6 +112,7 @@ export default async function EscalasPage({
         usuarios={usuarios}
         escalasIniciais={JSON.parse(JSON.stringify(escalas))}
         diasDoMes={dias}
+        mesAtivo={mesAtivo}
       />
     </div>
   );

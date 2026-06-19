@@ -9,7 +9,7 @@
 ## URL base
 
 ```
-https://kronos.vercel.app/api/v1
+https://<seu-dominio-na-vercel>.vercel.app/api/v1
 ```
 
 Em desenvolvimento local:
