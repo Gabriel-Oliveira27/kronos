@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Space_Grotesk, IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
-import Script from "next/script";
 import { usuarioAtual } from "@/lib/session";
 import { escurecerHex, cn } from "@/lib/utils";
 import "./globals.css";
@@ -29,10 +28,6 @@ export const metadata: Metadata = {
   title: "Kronos — controle de ponto e escalas",
   description: "Gestão de usuários, escalas de trabalho e base de conhecimento da equipe.",
 };
-
-// Minificado propositalmente — menor payload e evita quebra de linha
-// que o React 19 interpreta como whitespace em scripts inline.
-const SCRIPT_TEMA = `(function(){try{var e=document.documentElement.dataset.temaExplicito==="1";if(e)return;var d=window.matchMedia("(prefers-color-scheme: dark)").matches;document.documentElement.classList.toggle("dark",d)}catch(_){}})()`;
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const usuario = await usuarioAtual();
@@ -64,26 +59,22 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       className={htmlClass}
       data-tema-explicito={temaExplicito ? "1" : "0"}
       style={style}
-      // suppressHydrationWarning: cobre o caso residual do Turbopack (Next 16)
-      // em que o formato do atributo className difere levemente entre RSC e
-      // hidratação do cliente mesmo com cn(). Não oculta erros reais de conteúdo.
+      // suppressHydrationWarning: cobre o mismatch residual do Turbopack (Next 16)
+      // no formato do className entre RSC e hidratação do cliente.
       suppressHydrationWarning
     >
       <body className="font-sans antialiased">
         {children}
         {/*
-          Script de detecção de tema do sistema roda ANTES da hidratação via
-          strategy="beforeInteractive". Colocado no <body> (não no <head>) porque
-          o React 19 emite warning ao encontrar <script> dentro de <head> JSX —
-          o Next.js injeta corretamente no <head> da resposta HTML de qualquer jeito.
+          NOTA: O script de detecção de tema do sistema foi removido daqui.
+          React 19 emite warning ("Encountered a script tag while rendering
+          React component") para qualquer <script> em JSX, incluindo o
+          componente Script do next/script com strategy="beforeInteractive".
+
+          A detecção de preferência do sistema agora acontece client-side
+          via useEffect no ThemeToggle — sem flash perceptível para usuários
+          logados (tema explícito já vem do servidor) e mínimo para o sistema.
         */}
-        {!temaExplicito && (
-          <Script
-            id="kronos-tema-init"
-            strategy="beforeInteractive"
-            dangerouslySetInnerHTML={{ __html: SCRIPT_TEMA }}
-          />
-        )}
       </body>
     </html>
   );

@@ -76,7 +76,7 @@ export default async function EscalasPage({
   const [usuarios, escalas] = await Promise.all([
     prisma.usuario.findMany({
       orderBy: { nomeCompleto: "asc" },
-      select: { id: true, nomeCompleto: true, setor: true, temApp: true },
+      select: { id: true, nomeCompleto: true, setor: true, temApp: true, fotoUrl: true },
     }),
     prisma.escalaDia.findMany({
       where: { data: { gte: inicio, lte: fim } },
@@ -109,6 +109,7 @@ export default async function EscalasPage({
       </div>
 
       <EscalasBoard
+        key={mesAtivo}
         usuarios={usuarios}
         escalasIniciais={JSON.parse(JSON.stringify(escalas))}
         diasDoMes={dias}

@@ -39,7 +39,11 @@ export async function registrarEvento({ tipo, usuarioId, detalhe }: RegistrarEve
       data: {
         tipo,
         usuarioId: usuarioId ?? null,
-        detalhe: detalhe ?? undefined,
+        // JSON.parse(JSON.stringify()) converte Record<string, unknown> para um
+        // valor JSON puro que o Prisma 7 aceita para o campo Json? — sem isso
+        // o TypeScript do Vercel (que usa os tipos gerados do schema real) falha
+        // com "not assignable to type NullableJsonNullValueInput | InputJsonValue".
+        detalhe: JSON.parse(JSON.stringify(detalhe ?? null)),
       },
     });
   } catch (err) {

@@ -44,13 +44,16 @@ export function escurecerHex(hex: string, fator = 0.15): string {
 }
 
 export function inicioDoDia(data: Date): Date {
+  // setUTCHours garante meia-noite em UTC, independente do timezone do servidor.
+  // setHours usava hora LOCAL: no Brasil (UTC-3) criava 03:00Z em vez de 00:00Z,
+  // fazendo a query de upsert não encontrar registros salvos em UTC midnight.
   const d = new Date(data);
-  d.setHours(0, 0, 0, 0);
+  d.setUTCHours(0, 0, 0, 0);
   return d;
 }
 
 export function fimDoDia(data: Date): Date {
   const d = new Date(data);
-  d.setHours(23, 59, 59, 999);
+  d.setUTCHours(23, 59, 59, 999);
   return d;
 }

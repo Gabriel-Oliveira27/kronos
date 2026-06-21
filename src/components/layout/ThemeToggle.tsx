@@ -1,11 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export function ThemeToggle() {
   const [escuro, setEscuro] = useState(
     () => typeof document !== "undefined" && document.documentElement.classList.contains("dark")
   );
+
+  // Detecta preferência do sistema na montagem — roda só no cliente, sem warning
+  // do React 19. Usuários com tema explícito (data-tema-explicito="1") já têm
+  // a classe correta vinda do servidor, então esse efeito é no-op para eles.
+  useEffect(() => {
+    if (document.documentElement.dataset.temaExplicito === "0") {
+      const prefereDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      document.documentElement.classList.toggle("dark", prefereDark);
+      setEscuro(prefereDark);
+    }
+  }, []);
 
   async function alternar() {
     const novoEscuro = !escuro;
