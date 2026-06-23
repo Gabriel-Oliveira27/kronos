@@ -12,7 +12,7 @@ export default async function UsuariosPage() {
   }
   const usuarios = await prisma.usuario.findMany({
     orderBy: { criadoEm: "desc" },
-    select: { id:true,nomeCompleto:true,setor:true,email:true,username:true,papel:true,temApp:true,ativo:true,fotoUrl:true,criadoEm:true },
+    select: { id:true,nomeCompleto:true,setor:true,email:true,username:true,papel:true,temApp:true,ativo:true,fotoUrl:true,modeloHorarioId:true,criadoEm:true },
   });
   return (
     <div className="flex flex-col gap-6">
