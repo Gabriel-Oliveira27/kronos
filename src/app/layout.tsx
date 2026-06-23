@@ -50,6 +50,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     ? (styleVars as React.CSSProperties)
     : undefined;
 
+  // Resolve o tema antes da primeira pintura para todas as páginas (inclusive
+  // públicas, sem login). Regra única: usa o tema salvo (localStorage); se não
+  // houver, segue a preferência do navegador; o padrão é claro. Só roda quando
+  // o servidor NÃO aplicou um tema explícito vindo do banco (usuário logado).
+  const initTema = `(function(){try{var h=document.documentElement;if(h.dataset.temaExplicito==='1')return;var t=localStorage.getItem('kronos-tema');if(t!=='claro'&&t!=='escuro'&&t!=='noturno'){t=window.matchMedia('(prefers-color-scheme: dark)').matches?'escuro':'claro';}h.dataset.tema=t;h.classList.remove('dark','night');if(t==='escuro'||t==='noturno')h.classList.add('dark');if(t==='noturno')h.classList.add('night');}catch(e){}})();`;
+
   return (
     <html
       lang="pt-BR"
@@ -59,7 +65,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       style={style}
       suppressHydrationWarning
     >
-      <body className="font-sans antialiased">{children}</body>
+      <body className="font-sans antialiased">
+        <script dangerouslySetInnerHTML={{ __html: initTema }} />
+        {children}
+      </body>
     </html>
   );
 }

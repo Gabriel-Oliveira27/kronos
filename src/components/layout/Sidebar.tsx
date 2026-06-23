@@ -42,8 +42,7 @@ const ITENS_ESCALA: NavItem[] = [
 const ITENS_ADMIN: NavItem[] = [
   { href: "/dashboard/usuarios",          label: "Usuários",              icone: ICONES.users,    papeis: ["ADMIN","SUPORTE"] },
   { href: "/dashboard/solicitacoes",      label: "Solicitações de acesso",icone: ICONES.requests, papeis: ["ADMIN"] },
-  { href: "/dashboard/logs",              label: "Logs",                  icone: ICONES.logs,     papeis: ["ADMIN","SUPORTE"] },
-  { href: "/dashboard/registros-excluidos",label: "Registros excluídos",  icone: ICONES.trash,    papeis: ["ADMIN"] },
+  { href: "/dashboard/logs",              label: "Auditoria",             icone: ICONES.logs,     papeis: ["ADMIN","SUPORTE"] },
 ];
 
 const ITENS_APP: NavItem[] = [

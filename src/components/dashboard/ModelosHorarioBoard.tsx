@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { cn } from "@/lib/utils";
 
-interface Aviso { hora: string; mensagem: string }
+interface Aviso { hora: string; mensagem: string; dias?: string[] }
 interface ConfiguracaoDias { seg?:number;ter?:number;qua?:number;qui?:number;sex?:number;sab?:number;dom?:number }
 interface Configuracao { diasUteis?: ConfiguracaoDias; avisos?: Aviso[] }
 interface ModeloView {
@@ -20,6 +20,11 @@ const DIAS_SEMANA = [
   { chave: "qui", label: "Qui" }, { chave: "sex", label: "Sex" }, { chave: "sab", label: "Sáb" },
   { chave: "dom", label: "Dom" },
 ] as const;
+
+function rotuloDias(dias?: string[]): string {
+  if (!dias || dias.length === 0) return "todos os dias";
+  return DIAS_SEMANA.filter(d => dias.includes(d.chave)).map(d => d.label).join(", ");
+}
 
 function FormModelo({ inicial, onSalvar, onCancelar }: {
   inicial?: Partial<ModeloView>; onSalvar: (dados: unknown) => Promise<void>; onCancelar: () => void;
@@ -45,10 +50,17 @@ function FormModelo({ inicial, onSalvar, onCancelar }: {
     finally { setSalvando(false); }
   }
 
-  function adicionarAviso() { setAvisos(a => [...a, { hora: "10:00", mensagem: "" }]); }
+  function adicionarAviso() { setAvisos(a => [...a, { hora: "10:00", mensagem: "", dias: [] }]); }
   function removerAviso(i: number) { setAvisos(a => a.filter((_,j) => j !== i)); }
-  function atualizarAviso(i: number, campo: keyof Aviso, valor: string) {
+  function atualizarAviso(i: number, campo: "hora" | "mensagem", valor: string) {
     setAvisos(a => a.map((av, j) => j === i ? { ...av, [campo]: valor } : av));
+  }
+  function alternarDiaAviso(i: number, chave: string) {
+    setAvisos(a => a.map((av, j) => {
+      if (j !== i) return av;
+      const dias = av.dias ?? [];
+      return { ...av, dias: dias.includes(chave) ? dias.filter(d => d !== chave) : [...dias, chave] };
+    }));
   }
 
   return (
@@ -84,13 +96,32 @@ function FormModelo({ inicial, onSalvar, onCancelar }: {
         </div>
         <div className="flex flex-col gap-2">
           {avisos.map((av, i) => (
-            <div key={i} className="flex items-center gap-2">
-              <input type="time" value={av.hora} onChange={e => atualizarAviso(i,"hora",e.target.value)}
-                className="h-9 rounded-lg border border-slate-300 bg-white px-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100" />
-              <input type="text" placeholder="Mensagem do aviso" value={av.mensagem}
-                onChange={e => atualizarAviso(i,"mensagem",e.target.value)}
-                className="h-9 flex-1 rounded-lg border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100" />
-              <button onClick={() => removerAviso(i)} className="text-slate-400 hover:text-danger">×</button>
+            <div key={i} className="rounded-lg border border-slate-200 p-2.5 dark:border-slate-700">
+              <div className="flex items-center gap-2">
+                <input type="time" value={av.hora} onChange={e => atualizarAviso(i,"hora",e.target.value)}
+                  className="h-9 rounded-lg border border-slate-300 bg-white px-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100" />
+                <input type="text" placeholder="Mensagem do aviso" value={av.mensagem}
+                  onChange={e => atualizarAviso(i,"mensagem",e.target.value)}
+                  className="h-9 flex-1 rounded-lg border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100" />
+                <button onClick={() => removerAviso(i)} className="px-1 text-slate-400 hover:text-danger" title="Remover aviso">×</button>
+              </div>
+              <div className="mt-2 flex flex-wrap items-center gap-1">
+                <span className="mr-1 text-[10px] font-medium uppercase tracking-wide text-slate-400">Dias:</span>
+                {DIAS_SEMANA.map(({ chave, label }) => {
+                  const ativo = (av.dias ?? []).includes(chave);
+                  return (
+                    <button type="button" key={chave} onClick={() => alternarDiaAviso(i, chave)}
+                      className={cn("rounded px-1.5 py-0.5 text-[10px] font-semibold transition-colors",
+                        ativo ? "bg-brand-blue text-white"
+                          : "bg-slate-100 text-slate-500 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700")}>
+                      {label}
+                    </button>
+                  );
+                })}
+                {(!av.dias || av.dias.length === 0) && (
+                  <span className="ml-1 text-[10px] text-slate-400">todos os dias</span>
+                )}
+              </div>
             </div>
           ))}
           {avisos.length === 0 && <p className="text-xs text-slate-400">Nenhum aviso configurado.</p>}
@@ -192,6 +223,7 @@ export function ModelosHorarioBoard({ modelosIniciais }: { modelosIniciais: Mode
                     {m.configuracao.avisos.map((av, i) => (
                       <p key={i} className="text-xs text-slate-500 dark:text-slate-400">
                         ⏰ {av.hora} — {av.mensagem}
+                        <span className="text-slate-400 dark:text-slate-500"> · {rotuloDias(av.dias)}</span>
                       </p>
                     ))}
                   </div>

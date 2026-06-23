@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { Logo } from "@/components/ui/Logo";
 import { Button } from "@/components/ui/Button";
-import { FonePreview } from "@/components/marketing/FonePreview";
+import { ThemeToggle } from "@/components/layout/ThemeToggle";
+import { HeroMockup } from "@/components/marketing/HeroMockup";
 
 const RECURSOS = [
   {
@@ -41,27 +42,28 @@ const PASSOS = [
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-[#0B1220]">
+    <div className="min-h-screen bg-white dark:bg-[#0B1220]">
       {/* Header */}
-      <header className="border-b border-slate-800/70">
+      <header className="border-b border-slate-200 dark:border-slate-800/70">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <Logo />
-          <nav className="flex items-center gap-3">
+          <Logo withIcon={false} wordmarkClassName="text-2xl text-brand-blue" />
+          <nav className="flex items-center gap-2 sm:gap-3">
             <Link
               href="/escala"
-              className="text-sm font-medium text-slate-400 hover:text-white transition-colors"
+              className="hidden text-sm font-medium text-slate-600 transition-colors hover:text-slate-900 dark:text-slate-400 dark:hover:text-white sm:inline"
             >
               Ver escala
             </Link>
             <Link
               href="/login"
-              className="text-sm font-medium text-slate-300 hover:text-white transition-colors"
+              className="text-sm font-medium text-slate-600 transition-colors hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
             >
               Entrar
             </Link>
             <Link href="/solicitar-acesso">
               <Button size="sm">Solicitar acesso</Button>
             </Link>
+            <ThemeToggle />
           </nav>
         </div>
       </header>
@@ -79,13 +81,13 @@ export default function LandingPage() {
               </span>
             </div>
 
-            <h1 className="font-display text-4xl font-semibold leading-tight tracking-tight text-white sm:text-5xl">
+            <h1 className="font-display text-4xl font-semibold leading-tight tracking-tight text-slate-900 dark:text-white sm:text-5xl">
               Chega de foto{" "}
-              <span className="text-slate-400">de escala</span>{" "}
+              <span className="text-slate-400 dark:text-slate-500">de escala</span>{" "}
               no grupo.
             </h1>
 
-            <p className="mt-5 max-w-md text-base leading-relaxed text-slate-400">
+            <p className="mt-5 max-w-md text-base leading-relaxed text-slate-600 dark:text-slate-400">
               Gestão de usuários, escalas de trabalho e conhecimento da equipe em um só lugar —
               e a base que sincroniza com o app de ponto de cada colaborador.
             </p>
@@ -102,40 +104,40 @@ export default function LandingPage() {
             </div>
 
             {/* Prova social / stats */}
-            <div className="mt-10 flex gap-8 border-t border-slate-800 pt-8">
+            <div className="mt-10 flex gap-8 border-t border-slate-200 pt-8 dark:border-slate-800">
               <div>
-                <p className="font-display text-2xl font-semibold text-white">4</p>
+                <p className="font-display text-2xl font-semibold text-slate-900 dark:text-white">4</p>
                 <p className="text-xs text-slate-500">papéis de acesso</p>
               </div>
               <div>
-                <p className="font-display text-2xl font-semibold text-white">100%</p>
+                <p className="font-display text-2xl font-semibold text-slate-900 dark:text-white">100%</p>
                 <p className="text-xs text-slate-500">sincronizado com o app</p>
               </div>
               <div>
-                <p className="font-display text-2xl font-semibold text-white">24h</p>
+                <p className="font-display text-2xl font-semibold text-slate-900 dark:text-white">24h</p>
                 <p className="text-xs text-slate-500">de auditoria de exclusões</p>
               </div>
             </div>
           </div>
 
-          {/* Mockup do celular */}
-          <FonePreview />
+          {/* Foto com o app na tela */}
+          <HeroMockup />
         </section>
 
         {/* Recursos */}
-        <section className="border-y border-slate-800/60 bg-slate-900/30">
+        <section className="border-y border-slate-200 bg-slate-50 dark:border-slate-800/60 dark:bg-slate-900/30">
           <div className="mx-auto max-w-6xl px-6 py-16">
-            <h2 className="font-display text-2xl font-semibold text-white">
+            <h2 className="font-display text-2xl font-semibold text-slate-900 dark:text-white">
               Tudo que a operação precisa, num lugar só
             </h2>
             <div className="mt-10 grid gap-6 sm:grid-cols-3">
               {RECURSOS.map((r) => (
                 <div
                   key={r.titulo}
-                  className="rounded-xl border border-slate-800 bg-slate-900/60 p-5 transition-colors hover:border-slate-700"
+                  className="rounded-xl border border-slate-200 bg-white p-5 transition-colors hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900/60 dark:hover:border-slate-700"
                 >
-                  <h3 className="font-display text-base font-semibold text-white">{r.titulo}</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-slate-400">{r.descricao}</p>
+                  <h3 className="font-display text-base font-semibold text-slate-900 dark:text-white">{r.titulo}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-400">{r.descricao}</p>
                 </div>
               ))}
             </div>
@@ -144,7 +146,7 @@ export default function LandingPage() {
 
         {/* Como funciona */}
         <section className="mx-auto max-w-6xl px-6 py-16">
-          <h2 className="font-display text-2xl font-semibold text-white">
+          <h2 className="font-display text-2xl font-semibold text-slate-900 dark:text-white">
             Como funciona o acesso
           </h2>
           <div className="mt-10 grid gap-8 sm:grid-cols-3">
@@ -153,20 +155,20 @@ export default function LandingPage() {
                 <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-blue font-display text-sm font-semibold text-white">
                   {p.numero}
                 </div>
-                <h3 className="mt-4 font-display text-base font-semibold text-white">{p.titulo}</h3>
-                <p className="mt-1.5 text-sm leading-relaxed text-slate-400">{p.descricao}</p>
+                <h3 className="mt-4 font-display text-base font-semibold text-slate-900 dark:text-white">{p.titulo}</h3>
+                <p className="mt-1.5 text-sm leading-relaxed text-slate-600 dark:text-slate-400">{p.descricao}</p>
               </div>
             ))}
           </div>
         </section>
 
         {/* CTA final */}
-        <section className="border-t border-slate-800/60 bg-slate-900/20">
+        <section className="border-t border-slate-200 bg-slate-50 dark:border-slate-800/60 dark:bg-slate-900/20">
           <div className="mx-auto max-w-6xl px-6 py-14 text-center">
-            <h2 className="font-display text-2xl font-semibold text-white">
+            <h2 className="font-display text-2xl font-semibold text-slate-900 dark:text-white">
               Pronto para organizar a sua equipe?
             </h2>
-            <p className="mt-3 text-sm text-slate-400">
+            <p className="mt-3 text-sm text-slate-600 dark:text-slate-400">
               Solicite o acesso — um administrador cria sua conta manualmente em seguida.
             </p>
             <div className="mt-6 flex justify-center gap-3">
@@ -183,10 +185,10 @@ export default function LandingPage() {
         </section>
       </main>
 
-      <footer className="border-t border-slate-800/60 px-6 py-8">
+      <footer className="border-t border-slate-200 px-6 py-8 dark:border-slate-800/60">
         <div className="mx-auto flex max-w-6xl items-center justify-between">
           <Logo size={22} />
-          <p className="text-xs text-slate-600">© {new Date().getFullYear()} Kronos</p>
+          <p className="text-xs text-slate-500 dark:text-slate-600">© {new Date().getFullYear()} Kronos</p>
         </div>
       </footer>
     </div>

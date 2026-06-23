@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Logo } from "@/components/ui/Logo";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { cn } from "@/lib/utils";
 
 const STORAGE_KEY = "kronos_ps";
@@ -107,11 +108,23 @@ export default function EscalaPublicaPage() {
   // ── Tela de entrada da palavra secreta ──
   if (!ps) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-[#0B1220] px-6 py-12">
-        <Link href="/" className="mb-10"><Logo /></Link>
-        <div className="w-full max-w-sm rounded-2xl border border-slate-800 bg-slate-900 p-8 shadow-xl">
-          <h1 className="font-display text-xl font-semibold text-white">Escala do plantão</h1>
-          <p className="mt-2 text-sm text-slate-400">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-white px-6 py-12 dark:bg-[#0B1220]">
+        {/* Topo: home + tema */}
+        <div className="mb-8 flex w-full max-w-sm items-center justify-between">
+          <Link href="/" className="flex items-center gap-2 text-sm text-slate-500 transition-colors hover:text-slate-900 dark:text-slate-400 dark:hover:text-white">
+            <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4">
+              <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 0 0 1 1h3m10-11 2 2m-2-2v10a1 1 0 0 1-1 1h-3m-6 0a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1m-6 0h6"
+                stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            Página inicial
+          </Link>
+          <ThemeToggle />
+        </div>
+
+        <Link href="/" className="mb-8"><Logo /></Link>
+        <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-8 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:shadow-xl">
+          <h1 className="font-display text-xl font-semibold text-slate-900 dark:text-white">Escala do plantão</h1>
+          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
             Digite a palavra secreta para visualizar a escala da equipe sem precisar fazer login.
           </p>
           <div className="mt-6 flex flex-col gap-4">
@@ -121,7 +134,7 @@ export default function EscalaPublicaPage() {
             <Button onClick={autenticar} disabled={!psInput.trim()}>Ver escala</Button>
           </div>
         </div>
-        <p className="mt-6 text-xs text-slate-600">
+        <p className="mt-6 text-xs text-slate-500 dark:text-slate-600">
           Colaborador? <Link href="/login" className="text-brand-blue hover:underline">Fazer login</Link>
         </p>
       </div>
@@ -146,15 +159,16 @@ export default function EscalaPublicaPage() {
     : [];
 
   return (
-    <div className="min-h-screen bg-[#0B1220]">
-      <header className="border-b border-slate-800/70">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+    <div className="min-h-screen bg-white dark:bg-[#0B1220]">
+      <header className="border-b border-slate-200 dark:border-slate-800/70">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
           <Link href="/"><Logo /></Link>
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-slate-500">Visualização pública</span>
+          <div className="flex items-center gap-2 sm:gap-3">
+            <span className="hidden text-xs text-slate-500 sm:inline">Visualização pública</span>
             <button onClick={() => { sessionStorage.removeItem(STORAGE_KEY); setPs(""); setPsInput(""); setDados(null); }}
-              className="text-xs font-medium text-slate-400 hover:text-white transition-colors">Sair</button>
+              className="text-xs font-medium text-slate-500 transition-colors hover:text-slate-900 dark:text-slate-400 dark:hover:text-white">Sair</button>
             <Link href="/login"><Button size="sm" variant="outline">Login</Button></Link>
+            <ThemeToggle />
           </div>
         </div>
       </header>
@@ -163,8 +177,8 @@ export default function EscalaPublicaPage() {
         {/* Navegação de mês */}
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h1 className="font-display text-2xl font-semibold capitalize text-white">{nomeDoMes(mes)}</h1>
-            <p className="mt-0.5 text-sm text-slate-500">Escala da equipe — somente leitura</p>
+            <h1 className="font-display text-2xl font-semibold capitalize text-slate-900 dark:text-white">{nomeDoMes(mes)}</h1>
+            <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">Escala da equipe — somente leitura</p>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={() => { setMes(m => moverMes(m, -1)); setDiaSelecionado(null); }}>← Mês anterior</Button>
@@ -186,13 +200,13 @@ export default function EscalaPublicaPage() {
           <div className="flex flex-col gap-4 lg:flex-row">
             {/* Lista de membros */}
             <div className="hidden w-44 shrink-0 lg:block">
-              <div className="rounded-xl border border-slate-800 bg-slate-900/60">
-                <div className="border-b border-slate-800 px-3 py-2">
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+              <div className="rounded-xl border border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-900/60">
+                <div className="border-b border-slate-200 px-3 py-2 dark:border-slate-800">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
                     Equipe ({usuarios.length})
                   </p>
                 </div>
-                <ul className="divide-y divide-slate-800/60">
+                <ul className="divide-y divide-slate-100 dark:divide-slate-800/60">
                   {usuarios.map((u) => (
                     <li key={u.id} className="flex items-center gap-2 px-3 py-2">
                       {u.fotoUrl ? (
@@ -204,8 +218,8 @@ export default function EscalaPublicaPage() {
                         </span>
                       )}
                       <div className="min-w-0">
-                        <p className="truncate text-xs font-medium text-slate-200" title={u.nomeCompleto}>{u.nomeCompleto}</p>
-                        <p className="text-[10px] text-slate-500">{u.setor}</p>
+                        <p className="truncate text-xs font-medium text-slate-800 dark:text-slate-200" title={u.nomeCompleto}>{u.nomeCompleto}</p>
+                        <p className="text-[10px] text-slate-400 dark:text-slate-500">{u.setor}</p>
                       </div>
                     </li>
                   ))}
@@ -222,7 +236,7 @@ export default function EscalaPublicaPage() {
               </div>
               <div className="grid grid-cols-7 gap-1">
                 {Array.from({ length: offsetInicio }).map((_, i) => (
-                  <div key={`vazio-${i}`} className="min-h-[80px] rounded-lg bg-slate-900/20" />
+                  <div key={`vazio-${i}`} className="min-h-[80px] rounded-lg bg-slate-100 dark:bg-slate-900/20" />
                 ))}
                 {dias.map((dia) => {
                   const numDia = Number(dia.slice(8));
@@ -238,13 +252,13 @@ export default function EscalaPublicaPage() {
                       className={cn(
                         "min-h-[80px] rounded-lg border p-1.5 text-left transition-all",
                         ehSelecionado ? "border-brand-blue bg-brand-blue/10 ring-2 ring-brand-blue/30"
-                          : ehHoje ? "border-brand-blue/40 bg-brand-blue/10"
-                          : "border-slate-800 hover:border-slate-700 bg-slate-900/40"
+                          : ehHoje ? "border-brand-blue/40 bg-brand-blue/5 dark:bg-brand-blue/10"
+                          : "border-slate-200 bg-white hover:border-slate-300 dark:border-slate-800 dark:hover:border-slate-700 dark:bg-slate-900/40"
                       )}
                     >
                       <span className={cn(
                         "flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-medium",
-                        ehHoje ? "bg-brand-blue font-bold text-white" : "text-slate-400"
+                        ehHoje ? "bg-brand-blue font-bold text-white" : "text-slate-500 dark:text-slate-400"
                       )}>
                         {numDia}
                       </span>
@@ -253,7 +267,7 @@ export default function EscalaPublicaPage() {
                           <AvatarPublico key={u.id} usuario={u} tipo={e!.tipo} size={18} />
                         ))}
                         {escaladosNoDia.length > 6 && (
-                          <span className="flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-slate-700 px-1 text-[9px] font-medium text-slate-300">
+                          <span className="flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-slate-200 px-1 text-[9px] font-medium text-slate-600 dark:bg-slate-700 dark:text-slate-300">
                             +{escaladosNoDia.length - 6}
                           </span>
                         )}
@@ -277,9 +291,9 @@ export default function EscalaPublicaPage() {
             {/* Painel lateral do dia selecionado */}
             <div className="w-full lg:w-72 lg:shrink-0">
               {diaSelecionado ? (
-                <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
-                  <p className="text-[10px] uppercase tracking-wider text-slate-500">Dia selecionado</p>
-                  <p className="font-display text-base font-semibold text-white">
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900/60">
+                  <p className="text-[10px] uppercase tracking-wider text-slate-400 dark:text-slate-500">Dia selecionado</p>
+                  <p className="font-display text-base font-semibold text-slate-900 dark:text-white">
                     {new Date(diaSelecionado + "T12:00:00Z").toLocaleDateString("pt-BR", {
                       weekday: "long", day: "numeric", month: "long",
                     })}
@@ -290,24 +304,24 @@ export default function EscalaPublicaPage() {
                         <div key={u.id} className="flex items-center gap-2">
                           <AvatarPublico usuario={u} tipo={e!.tipo} size={28} />
                           <div className="min-w-0">
-                            <p className="truncate text-xs font-semibold text-slate-200">{u.nomeCompleto}</p>
-                            <p className="text-[10px] text-slate-400">{ROTULOS_TIPO[e!.tipo] ?? e!.tipo}</p>
+                            <p className="truncate text-xs font-semibold text-slate-800 dark:text-slate-200">{u.nomeCompleto}</p>
+                            <p className="text-[10px] text-slate-500 dark:text-slate-400">{ROTULOS_TIPO[e!.tipo] ?? e!.tipo}</p>
                           </div>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <p className="mt-4 text-sm text-slate-500">Nenhuma escala atribuída neste dia.</p>
+                    <p className="mt-4 text-sm text-slate-500 dark:text-slate-400">Nenhuma escala atribuída neste dia.</p>
                   )}
                 </div>
               ) : (
-                <div className="flex flex-col items-center gap-3 rounded-xl border border-slate-800 bg-slate-900/40 py-10 text-center">
-                  <div className="rounded-lg bg-slate-800 p-3">
-                    <svg className="h-6 w-6 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <div className="flex flex-col items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 py-10 text-center dark:border-slate-800 dark:bg-slate-900/40">
+                  <div className="rounded-lg bg-slate-100 p-3 dark:bg-slate-800">
+                    <svg className="h-6 w-6 text-slate-400 dark:text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5" />
                     </svg>
                   </div>
-                  <p className="text-sm text-slate-500">Clique em um dia para ver quem está escalado.</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">Clique em um dia para ver quem está escalado.</p>
                 </div>
               )}
             </div>

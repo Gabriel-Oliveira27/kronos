@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { ROTULOS_PAPEL } from "@/lib/utils";
 import type { Papel } from "@prisma/client";
 
@@ -9,7 +8,6 @@ export function UserMenu({ nomeCompleto, papel }: { nomeCompleto: string; papel:
   const [aberto, setAberto] = useState(false);
   const [saindo, setSaindo] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  const router = useRouter();
 
   useEffect(() => {
     function aoClicarFora(e: MouseEvent) {
@@ -24,8 +22,7 @@ export function UserMenu({ nomeCompleto, papel }: { nomeCompleto: string; papel:
     try {
       await fetch("/api/v1/auth/logout", { method: "POST" });
     } finally {
-      router.push("/login");
-      router.refresh();
+      window.location.href = "/";
     }
   }
 

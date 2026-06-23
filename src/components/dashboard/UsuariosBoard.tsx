@@ -1,8 +1,8 @@
 "use client";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { UsuarioForm } from "@/components/dashboard/UsuarioForm";
+import { UsuarioForm, type UsuarioFormHandle } from "@/components/dashboard/UsuarioForm";
 import { ROTULOS_PAPEL, formatarData, cn } from "@/lib/utils";
 
 export interface UsuarioView {
@@ -32,6 +32,40 @@ export function UsuariosBoard({ usuariosIniciais, podeEditar }: { usuariosInicia
   const [painel, setPainel] = useState<"nenhum" | "criar" | string>("nenhum");
   const [filtroAtivo, setFiltroAtivo] = useState<"todos" | "ativos" | "inativos">("ativos");
   const [salvandoAtivo, setSalvandoAtivo] = useState<string | null>(null);
+  // Confirmação de alterações não salvas ao trocar de painel.
+  const [formSujo, setFormSujo] = useState(false);
+  const [pendente, setPendente] = useState<"nenhum" | "criar" | string | null>(null);
+  const [salvandoTroca, setSalvandoTroca] = useState(false);
+  const formRef = useRef<UsuarioFormHandle>(null);
+
+  // Tenta abrir outro painel; se houver alterações pendentes, pede confirmação.
+  function solicitarPainel(destino: "nenhum" | "criar" | string) {
+    if (painel !== "nenhum" && painel !== destino && formSujo) {
+      setPendente(destino);
+      return;
+    }
+    setFormSujo(false);
+    setPainel(destino);
+  }
+
+  function descartarEContinuar() {
+    if (pendente === null) return;
+    setFormSujo(false);
+    setPainel(pendente);
+    setPendente(null);
+  }
+
+  async function salvarEContinuar() {
+    if (pendente === null) return;
+    setSalvandoTroca(true);
+    const ok = await formRef.current?.salvar();
+    setSalvandoTroca(false);
+    if (ok) {
+      setFormSujo(false);
+      setPainel(pendente);
+      setPendente(null);
+    }
+  }
 
   function aoSalvar(dados: unknown) {
     const u = dados as UsuarioView;
@@ -40,6 +74,12 @@ export function UsuariosBoard({ usuariosIniciais, podeEditar }: { usuariosInicia
       if (existe) return prev.map(x => x.id === u.id ? { ...x, ...u } : x);
       return [u, ...prev];
     });
+    setFormSujo(false);
+    setPainel("nenhum");
+  }
+
+  function cancelarPainel() {
+    setFormSujo(false);
     setPainel("nenhum");
   }
 
@@ -83,7 +123,7 @@ export function UsuariosBoard({ usuariosIniciais, podeEditar }: { usuariosInicia
           ))}
         </div>
         {podeEditar && (
-          <Button size="sm" onClick={() => setPainel("criar")}>
+          <Button size="sm" onClick={() => solicitarPainel("criar")}>
             <svg viewBox="0 0 24 24" fill="none" className="mr-1.5 h-4 w-4">
               <path d="M12 9v6m3-3H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
                 stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
@@ -94,16 +134,29 @@ export function UsuariosBoard({ usuariosIniciais, podeEditar }: { usuariosInicia
       </div>
 
       {podeEditar && painel === "criar" && (
-        <Card><UsuarioForm onSucesso={aoSalvar} onCancelar={() => setPainel("nenhum")} /></Card>
+        <Card className="animate-painel">
+          <UsuarioForm
+            key="criar"
+            ref={formRef}
+            onSucesso={aoSalvar}
+            onCancelar={cancelarPainel}
+            onDirtyChange={setFormSujo}
+          />
+        </Card>
       )}
       {podeEditar && editando && (
-        <Card>
+        <Card className="animate-painel">
           <UsuarioForm
+            key={editando.id}
+            ref={formRef}
             usuarioId={editando.id}
             valoresIniciais={{ nomeCompleto: editando.nomeCompleto, setor: editando.setor,
               username: editando.username, email: editando.email ?? "", papel: editando.papel as never,
               temApp: editando.temApp, modeloHorarioId: editando.modeloHorarioId ?? "" }}
-            onSucesso={aoSalvar} onCancelar={() => setPainel("nenhum")} />
+            onSucesso={aoSalvar}
+            onCancelar={cancelarPainel}
+            onDirtyChange={setFormSujo}
+          />
         </Card>
       )}
 
@@ -148,7 +201,7 @@ export function UsuariosBoard({ usuariosIniciais, podeEditar }: { usuariosInicia
                 {podeEditar && (
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-2">
-                      <button onClick={() => setPainel(u.id)} title="Editar"
+                      <button onClick={() => solicitarPainel(u.id)} title="Editar"
                         className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-brand-blue dark:hover:bg-slate-800 transition-colors">
                         <svg viewBox="0 0 24 24" fill="none" className="h-3.5 w-3.5">
                           <path d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125"
@@ -185,6 +238,32 @@ export function UsuariosBoard({ usuariosIniciais, podeEditar }: { usuariosInicia
           <p className="p-8 text-center text-sm text-slate-500 dark:text-slate-400">Nenhum usuário nesta categoria.</p>
         )}
       </Card>
+
+      {/* Confirmação de alterações não salvas ao trocar de painel */}
+      {pendente !== null && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center p-4">
+          <div className="animate-overlay absolute inset-0 bg-slate-900/50" onClick={() => setPendente(null)} />
+          <div className="animate-modal relative w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-6 shadow-xl dark:border-slate-800 dark:bg-slate-900">
+            <h3 className="font-display text-base font-semibold text-slate-900 dark:text-white">
+              Alterações não salvas
+            </h3>
+            <p className="mt-1.5 text-sm text-slate-500 dark:text-slate-400">
+              Você tem alterações não salvas neste usuário. O que deseja fazer antes de continuar?
+            </p>
+            <div className="mt-5 flex flex-col gap-2">
+              <Button onClick={salvarEContinuar} loading={salvandoTroca}>
+                Salvar e continuar
+              </Button>
+              <Button variant="outline" onClick={descartarEContinuar} disabled={salvandoTroca}>
+                Descartar alterações
+              </Button>
+              <Button variant="ghost" onClick={() => setPendente(null)} disabled={salvandoTroca}>
+                Cancelar
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

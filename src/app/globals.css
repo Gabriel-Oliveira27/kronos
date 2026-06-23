@@ -73,7 +73,18 @@
 
 /* ─── Compatibilidade com classes .dark e .night legadas ─── */
 .dark  { --tema-bg-page: #09090b; --tema-bg-surface: #18181b; --tema-text: #fafafa; --tema-border: #27272a; color-scheme: dark; }
-.night { --tema-bg-page: #000000; --tema-bg-surface: #0a0a0a; --tema-text: #e4e4e7; --tema-border: #1c1c1e; color-scheme: dark; }
+.night {
+  --tema-bg-page: #000000; --tema-bg-surface: #0a0a0a; --tema-text: #e4e4e7; --tema-border: #1c1c1e;
+  color-scheme: dark;
+  /* O app inteiro usa utilitários dark:bg-slate-* (compartilhados entre escuro
+     e noturno). Para o noturno ser visivelmente mais escuro, empurramos a
+     própria paleta slate escura para preto puro — isso afeta todos os
+     dark:bg-slate-700/800/900 sem precisar tocar em cada componente. */
+  --color-slate-950: #000000;
+  --color-slate-900: #0a0a0a;
+  --color-slate-800: #161618;
+  --color-slate-700: #242427;
+}
 
 /* ─── Cores customizadas do usuário (via CSS vars inline no <html>) ─── */
 [style*="--user-text"]   { --tema-text:      var(--user-text,      var(--tema-text)); }
@@ -100,3 +111,60 @@ body {
 ::selection {
   background-color: color-mix(in srgb, var(--color-brand-blue) 25%, transparent);
 }
+
+/* ─── Animações de painel/modal ─── */
+@keyframes painel-abrir {
+  from { opacity: 0; transform: translateY(-6px) scale(0.99); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.animate-painel { animation: painel-abrir 0.18s ease-out; }
+
+@keyframes overlay-abrir {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.animate-overlay { animation: overlay-abrir 0.15s ease-out; }
+
+@keyframes modal-abrir {
+  from { opacity: 0; transform: translateY(8px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.animate-modal { animation: modal-abrir 0.18s ease-out; }
+
+/* ─── Cadeado de visibilidade (privado/público) — base vinodjangid07 (Uiverse) ───
+   Apenas o cadeado: fechado = privado; ao ativar o aro abre e o fundo fica roxo.
+   O indicador pessoa/planeta fica ao lado, no componente. */
+.vis-toggle { display: inline-flex; }
+.vis-toggle__input { position: absolute; width: 0; height: 0; opacity: 0; }
+.vis-toggle__label {
+  width: 40px; height: 40px;
+  display: flex; align-items: center; justify-content: center;
+  color: #64748b;            /* ícone: slate-500 (estado privado) */
+  background-color: #e2e8f0; /* slate-200 */
+  border-radius: 12px; cursor: pointer;
+  transition: all 0.3s;
+}
+.dark .vis-toggle__label { color: #94a3b8; background-color: #1e293b; } /* slate-400 sobre slate-800 */
+.vis-toggle__wrapper {
+  width: fit-content; height: fit-content;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  transform: rotate(-10deg);
+}
+.vis-toggle__shackle {
+  background-color: transparent;
+  height: 9px; width: 14px;
+  border-top-right-radius: 10px; border-top-left-radius: 10px;
+  border-top: 3px solid currentColor; border-left: 3px solid currentColor; border-right: 3px solid currentColor;
+  transition: all 0.3s;
+}
+.vis-toggle__lock { width: 14px; }
+.vis-toggle__input:checked + .vis-toggle__label {
+  color: #fff;
+  background-color: var(--color-brand-blue); /* público = azul de marca */
+}
+.vis-toggle__input:checked + .vis-toggle__label .vis-toggle__wrapper .vis-toggle__shackle {
+  transform: rotateY(150deg) translateX(3px);
+  transform-origin: right;
+}
+.vis-toggle__label:active { transform: scale(0.9); }
+.vis-toggle__input:focus-visible + .vis-toggle__label { outline: 2px solid var(--color-brand-blue); outline-offset: 2px; }
