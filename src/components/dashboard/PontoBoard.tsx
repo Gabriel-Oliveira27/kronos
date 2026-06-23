@@ -3,7 +3,7 @@ import { useState, useMemo } from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { cn } from "@/lib/utils";
+import { cn, horarioDoTipo } from "@/lib/utils";
 
 interface Registro { id: string; data: string; tipoEvento: string; horarioReal: string | null; confirmado: boolean; origem: string }
 interface EscalaItem { data: string; tipo: string }
@@ -16,9 +16,37 @@ const ROTULO_TIPO: Record<string, string> = {
   SAIDA_INTERVALO:"Saída intervalo", EXTRA:"Extra",
 };
 
-const META_TIPO: Record<string, number> = {
-  NORMAL: 8, HOME_OFFICE: 8, PLANTAO: 7.5, FOLGA: 0,
-};
+// Sábado vale 4h na jornada semanal de 44h (8h × seg–sex + 4h no sábado).
+const HORAS_SABADO = 4;
+
+function ehSabadoDia(dia: string): boolean {
+  return new Date(dia + "T12:00:00Z").getUTCDay() === 6;
+}
+
+/**
+ * Meta de horas do dia para o cálculo de saldo. Retorna `null` quando o dia
+ * NÃO entra no cálculo. Regras de negócio:
+ *  - Plantão / Home office → abonados, fora do cálculo (null).
+ *  - Sábado (expediente ou folga) → 4h. Folga no sábado vira débito de 4h.
+ *  - Folga em dia de semana → não gera débito (null).
+ *  - Dia normal de semana → jornada diária (8h).
+ *  - Dia sem escala e sem batidas → ignorado (null).
+ */
+function metaDoDia(
+  tipo: string | undefined,
+  dia: string,
+  jornadaDiaria: number,
+  temBatidas: boolean
+): number | null {
+  if (tipo === "PLANTAO" || tipo === "HOME_OFFICE") return null;
+  if (ehSabadoDia(dia)) {
+    if (tipo === "FOLGA" || tipo === "NORMAL" || temBatidas) return HORAS_SABADO;
+    return null;
+  }
+  if (tipo === "FOLGA") return null;
+  if (!tipo && !temBatidas) return null;
+  return jornadaDiaria;
+}
 
 function horaParaMinutos(h: string): number {
   const [hh, mm] = h.split(":").map(Number);
@@ -92,9 +120,9 @@ export function PontoBoard({ registrosIniciais, escalaDoMes, mesInicial, jornada
     let trabalhadas = 0, previstas = 0;
     diasDoMes.forEach(dia => {
       const tipo = escalaMap.get(dia);
-      const meta = tipo ? (META_TIPO[tipo] ?? jornadaDiaria) : jornadaDiaria;
       const regs = mapaDias.get(dia) ?? [];
-      if (tipo === "FOLGA" || regs.length === 0) { if (tipo && tipo !== "FOLGA") previstas += meta; return; }
+      const meta = metaDoDia(tipo, dia, jornadaDiaria, regs.length > 0);
+      if (meta === null) return; // plantão/home office/folga de semana: fora do cálculo
       previstas += meta;
       trabalhadas += calcularHorasDia(regs);
     });
@@ -235,9 +263,10 @@ function DiaCard({ dia, registros, tipo, jornadaDiaria, editandoId, editHorario,
   onExcluir: (id: string) => void;
   salvando: boolean; label?: string; destaque?: boolean;
 }) {
-  const meta = tipo ? (META_TIPO[tipo] ?? jornadaDiaria) : jornadaDiaria;
+  const meta = metaDoDia(tipo, dia, jornadaDiaria, registros.length > 0);
   const horas = calcularHorasDia(registros);
-  const saldo = tipo === "FOLGA" ? 0 : horas - meta;
+  const saldo = meta === null ? null : horas - meta;
+  const sabadoFolga = ehSabadoDia(dia) && tipo === "FOLGA";
   const dataFmt = new Date(dia+"T12:00:00Z").toLocaleDateString("pt-BR", { weekday:"long", day:"numeric", month:"long" });
 
   return (
@@ -255,7 +284,12 @@ function DiaCard({ dia, registros, tipo, jornadaDiaria, editandoId, editHorario,
               {tipo === "PLANTAO" ? "Plantão" : tipo === "HOME_OFFICE" ? "Home office" : tipo === "FOLGA" ? "Folga" : "Normal"}
             </span>
           )}
-          {registros.length > 0 && tipo !== "FOLGA" && (
+          {horarioDoTipo(tipo) && (
+            <span className="font-mono text-xs font-medium text-brand-green-dark dark:text-brand-green">
+              {horarioDoTipo(tipo)}
+            </span>
+          )}
+          {saldo !== null && (registros.length > 0 || sabadoFolga) && (
             <span className={cn("font-mono text-sm font-semibold", saldo >= 0 ? "text-brand-green-dark dark:text-brand-green" : "text-danger")}>
               {saldo >= 0 ? "+" : ""}{minutosParaHora(saldo*60)}
             </span>

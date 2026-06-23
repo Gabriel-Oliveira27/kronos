@@ -36,6 +36,9 @@ export function NavLoadingOverlay() {
       const href = alvo.getAttribute("href");
       const target = alvo.getAttribute("target");
       if (!href || !href.startsWith("/") || target === "_blank") return;
+      // Downloads e endpoints de API não são navegação de página — não mostram
+      // o overlay (senão ele fica infinito, pois o pathname não muda).
+      if (alvo.hasAttribute("download") || href.startsWith("/api/")) return;
 
       const url = new URL(href, window.location.origin);
       // Mesma rota → não há navegação.

@@ -32,6 +32,8 @@ export const PATCH = comTratamentoDeErro(async (request: NextRequest) => {
     data: {
       ...(dados.temaBase !== undefined ? { temaBase: dados.temaBase } : {}),
       ...(dados.corDestaque !== undefined ? { corDestaque: dados.corDestaque || null } : {}),
+      // temaConfig é Json? no Prisma — normaliza para JSON puro antes de gravar.
+      ...(dados.temaConfig !== undefined ? { temaConfig: JSON.parse(JSON.stringify(dados.temaConfig)) } : {}),
       ...(dados.fotoUrl !== undefined ? { fotoUrl: dados.fotoUrl || null } : {}),
       ...(novaSenhaHash ? { senhaHash: novaSenhaHash } : {}),
     },
@@ -46,6 +48,7 @@ export const PATCH = comTratamentoDeErro(async (request: NextRequest) => {
       fotoUrl: true,
       temaBase: true,
       corDestaque: true,
+      temaConfig: true,
     },
   });
 

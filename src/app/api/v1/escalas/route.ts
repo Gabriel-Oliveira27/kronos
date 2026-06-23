@@ -63,6 +63,20 @@ export const POST = comTratamentoDeErro(async (request: NextRequest) => {
     },
   });
 
+  // Regra de sábado: quem já está de folga ou home office no sábado não pode
+  // ser escalado para trabalhar presencialmente (Normal/Plantão).
+  if (
+    dados.data.getUTCDay() === 6 &&
+    (dados.tipo === "NORMAL" || dados.tipo === "PLANTAO") &&
+    (existente?.tipo === "FOLGA" || existente?.tipo === "HOME_OFFICE")
+  ) {
+    throw new ApiError(
+      409,
+      "Este colaborador está de folga ou home office neste sábado e não pode ser escalado para trabalhar presencialmente.",
+      "SABADO_INDISPONIVEL"
+    );
+  }
+
   const escala = existente
     ? await prisma.escalaDia.update({
         where: { id: existente.id },

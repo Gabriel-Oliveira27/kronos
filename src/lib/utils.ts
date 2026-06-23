@@ -29,6 +29,16 @@ export const ROTULOS_TIPO_DIA: Record<string, string> = {
   FOLGA: "Folga",
 };
 
+/** Horário fixo exibido por tipo de escala. Home office cumpre 14h–22h.
+ * Fonte única usada em toda a aplicação (escala, ponto, painel inicial). */
+export const HORARIO_POR_TIPO: Record<string, string> = {
+  HOME_OFFICE: "14h - 22h",
+};
+
+export function horarioDoTipo(tipo?: string | null): string | null {
+  return tipo ? HORARIO_POR_TIPO[tipo] ?? null : null;
+}
+
 /** Escurece uma cor hex em `fator` (0–1) — usado para o estado :hover do
  * acento customizado por usuário (corDestaque), sem precisar de uma segunda
  * cor cadastrada manualmente. */
