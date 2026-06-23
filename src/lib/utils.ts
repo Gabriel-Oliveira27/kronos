@@ -27,7 +27,6 @@ export const ROTULOS_TIPO_DIA: Record<string, string> = {
   PLANTAO: "Plantão",
   HOME_OFFICE: "Home office",
   FOLGA: "Folga",
-  SABADO_REDUZIDO: "Sábado reduzido",
 };
 
 /** Escurece uma cor hex em `fator` (0–1) — usado para o estado :hover do

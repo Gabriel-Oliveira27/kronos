@@ -1,62 +1,53 @@
 import { prisma } from "@/lib/prisma";
 import { usuarioAtual } from "@/lib/session";
-import { Card } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Card";
-import { formatarData } from "@/lib/utils";
+import { PontoBoard } from "@/components/dashboard/PontoBoard";
 
-export default async function PontoPage() {
+function mesAtual() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
+}
+
+export default async function MeuPontoPage() {
   const usuario = await usuarioAtual();
   if (!usuario) return null;
 
+  const mes = mesAtual();
+  const [ano, m] = mes.split("-").map(Number);
+  const mesStr = String(m).padStart(2,"0");
+  const ultimoDia = new Date(ano, m, 0).getDate();
+  const inicio = new Date(`${ano}-${mesStr}-01T00:00:00.000Z`);
+  const fim = new Date(`${ano}-${mesStr}-${String(ultimoDia).padStart(2,"0")}T23:59:59.999Z`);
+
   const registros = await prisma.registroPonto.findMany({
-    where: { usuarioId: usuario.id, deletadoEm: null },
-    orderBy: { data: "desc" },
-    take: 100,
+    where: { usuarioId: usuario.id, deletadoEm: null, data: { gte: inicio, lte: fim } },
+    orderBy: [{ data: "asc" }, { horarioReal: "asc" }],
   });
+
+  const escalaDoMes = await prisma.escalaDia.findMany({
+    where: { usuarioId: usuario.id, data: { gte: inicio, lte: fim } },
+    select: { data: true, tipo: true },
+  });
+
+  const temApp = usuario.temApp;
 
   return (
     <div className="flex flex-col gap-6">
       <div>
         <h1 className="font-display text-2xl font-semibold text-slate-900 dark:text-white">Meu ponto</h1>
-        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-          Histórico somente leitura — as batidas vêm da sincronização com o app.
-        </p>
+        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Registros de ponto e relatório de horas.</p>
       </div>
-
-      <Card className="overflow-hidden p-0">
-        {registros.length === 0 ? (
-          <p className="p-6 text-center text-sm text-slate-500 dark:text-slate-400">
-            Nenhuma batida sincronizada ainda.
-          </p>
-        ) : (
-          <table className="w-full text-sm">
-            <thead className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-400 dark:border-slate-800 dark:text-slate-500">
-              <tr>
-                <th className="px-4 py-3 font-medium">Data</th>
-                <th className="px-4 py-3 font-medium">Evento</th>
-                <th className="px-4 py-3 font-medium">Horário</th>
-                <th className="px-4 py-3 font-medium">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {registros.map((r) => (
-                <tr key={r.id} className="border-b border-slate-100 last:border-0 dark:border-slate-800/60">
-                  <td className="tabular px-4 py-3 text-slate-700 dark:text-slate-300">{formatarData(r.data)}</td>
-                  <td className="px-4 py-3 text-slate-700 dark:text-slate-300">{r.tipoEvento}</td>
-                  <td className="tabular px-4 py-3 text-slate-700 dark:text-slate-300">
-                    {r.horarioReal ?? "—"}
-                  </td>
-                  <td className="px-4 py-3">
-                    <Badge tone={r.confirmado ? "green" : "amber"}>
-                      {r.confirmado ? "Confirmado" : "Pendente"}
-                    </Badge>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </Card>
+      {temApp && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300">
+          <p className="font-semibold">Sincronização ativa com o Kronos App</p>
+          <p className="mt-0.5">Detectamos sincronização ativa com o Kronos App. Recomendamos utilizar as batidas registradas pelo aplicativo.</p>
+        </div>
+      )}
+      <PontoBoard
+        registrosIniciais={JSON.parse(JSON.stringify(registros))}
+        escalaDoMes={JSON.parse(JSON.stringify(escalaDoMes))}
+        mesInicial={mes}
+        jornadaDiaria={8}
+      />
     </div>
   );
 }

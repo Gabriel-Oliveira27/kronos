@@ -6,12 +6,17 @@ export default async function ConhecimentoPage() {
   const usuario = await usuarioAtual();
   if (!usuario) return null;
 
-  const vePrivadosDeOutros = usuario.papel === "ADMIN" || usuario.papel === "SUPORTE";
+  const isAdmin = usuario.papel === "ADMIN" || usuario.papel === "SUPORTE";
 
   const itens = await prisma.conhecimentoItem.findMany({
     where: {
       deletadoEm: null,
-      ...(vePrivadosDeOutros ? {} : { OR: [{ visibilidade: "PUBLICO" }, { autorId: usuario.id }] }),
+      OR: [
+        { visibilidade: "PUBLICO" },
+        { autorId: usuario.id },
+        // Admin/Suporte veem todos mas não exibimos isso na UI
+        ...(isAdmin ? [{}] : []),
+      ],
     },
     orderBy: { atualizadoEm: "desc" },
     include: { autor: { select: { id: true, nomeCompleto: true } } },
@@ -24,15 +29,13 @@ export default async function ConhecimentoPage() {
           Base de conhecimento
         </h1>
         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-          {vePrivadosDeOutros
-            ? "Como administrador/suporte, você também vê itens privados de outras pessoas — isso é intencional, para auditoria."
-            : "Itens públicos da equipe e suas anotações privadas."}
+          Consulte e contribua com procedimentos e informações da equipe.
         </p>
       </div>
       <ConhecimentoBoard
         itensIniciais={JSON.parse(JSON.stringify(itens))}
         usuarioId={usuario.id}
-        vePrivadosDeOutros={vePrivadosDeOutros}
+        isAdmin={isAdmin}
       />
     </div>
   );

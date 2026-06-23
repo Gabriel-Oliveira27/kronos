@@ -5,63 +5,37 @@ import { conhecimentoItemAtualizarSchema } from "@/lib/validations";
 import { comTratamentoDeErro, ApiError } from "@/lib/api";
 import { registrarEvento } from "@/lib/log";
 
-interface Params {
-  params: Promise<{ id: string }>;
-}
+interface Params { params: Promise<{ id: string }> }
 
-// Edição e exclusão são restritas ao autor — mesmo o ADMIN, que só tem
-// permissão de VISUALIZAR itens privados de terceiros (auditoria), não de
-// editá-los ou excluí-los. Ver briefing §6.
+async function verificarAcesso(id: string, usuarioId: string, papel: string) {
+  const item = await prisma.conhecimentoItem.findUnique({ where: { id } });
+  if (!item || item.deletadoEm) throw ApiError.naoEncontrado();
+  // Admin pode editar/excluir qualquer item; autor pode editar o próprio
+  const isAdmin = papel === "ADMIN" || papel === "SUPORTE";
+  if (!isAdmin && item.autorId !== usuarioId) throw new ApiError(403, "Sem permissão.", "PROIBIDO");
+  return item;
+}
 
 export const PUT = comTratamentoDeErro(async (request: NextRequest, { params }: Params) => {
   const { id } = await params;
   const usuario = await exigirUsuario();
-  const corpo = await request.json();
-  const dados = conhecimentoItemAtualizarSchema.parse(corpo);
-
-  const existente = await prisma.conhecimentoItem.findUnique({ where: { id } });
-  if (!existente || existente.deletadoEm) throw ApiError.naoEncontrado();
-  if (existente.autorId !== usuario.id) throw ApiError.semPermissao();
-
+  await verificarAcesso(id, usuario.id, usuario.papel);
+  const dados = conhecimentoItemAtualizarSchema.parse(await request.json());
   const atualizado = await prisma.conhecimentoItem.update({
-    where: { id },
-    data: {
-      ...(dados.titulo !== undefined ? { titulo: dados.titulo } : {}),
-      ...(dados.conteudo !== undefined ? { conteudo: dados.conteudo } : {}),
-      ...(dados.categoria !== undefined ? { categoria: dados.categoria || null } : {}),
-      ...(dados.tags !== undefined ? { tags: dados.tags } : {}),
-      ...(dados.visibilidade !== undefined ? { visibilidade: dados.visibilidade } : {}),
-    },
+    where: { id }, data: { ...dados, tags: dados.tags ?? undefined },
+    include: { autor: { select: { id: true, nomeCompleto: true } } },
   });
-
   return NextResponse.json(atualizado);
 });
 
-export const DELETE = comTratamentoDeErro(async (_request: NextRequest, { params }: Params) => {
+export const DELETE = comTratamentoDeErro(async (_req: NextRequest, { params }: Params) => {
   const { id } = await params;
   const usuario = await exigirUsuario();
-
-  const existente = await prisma.conhecimentoItem.findUnique({ where: { id } });
-  if (!existente || existente.deletadoEm) throw ApiError.naoEncontrado();
-  if (existente.autorId !== usuario.id) throw ApiError.semPermissao();
-
-  await prisma.$transaction(async (tx) => {
-    const excluido = await tx.conhecimentoItem.update({
-      where: { id },
-      data: { deletadoEm: new Date() },
-    });
-
-    await tx.registroExcluido.create({
-      data: {
-        tabelaOrigem: "ConhecimentoItem",
-        registroId: excluido.id,
-        payload: JSON.parse(JSON.stringify(excluido)),
-        excluidoPorId: usuario.id,
-      },
-    });
+  await verificarAcesso(id, usuario.id, usuario.papel);
+  await prisma.conhecimentoItem.update({ where: { id }, data: { deletadoEm: new Date() } });
+  await registrarEvento({
+    tipo: "CONHECIMENTO_EXCLUIDO", usuarioId: usuario.id,
+    detalhe: { itemId: id },
   });
-
-  await registrarEvento({ tipo: "CONHECIMENTO_EXCLUIDO", usuarioId: usuario.id, detalhe: { id } });
-
   return NextResponse.json({ ok: true });
 });

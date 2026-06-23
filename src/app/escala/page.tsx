@@ -11,13 +11,11 @@ const STORAGE_KEY = "kronos_ps";
 
 const ROTULOS_TIPO: Record<string, string> = {
   NORMAL: "Normal", PLANTAO: "Plantão", HOME_OFFICE: "Home office",
-  FOLGA: "Folga", SABADO_REDUZIDO: "Sáb. reduzido",
 };
 
 const RING_TIPO: Record<string, string> = {
   NORMAL: "ring-slate-400", PLANTAO: "ring-blue-500",
   HOME_OFFICE: "ring-green-500", FOLGA: "ring-amber-400",
-  SABADO_REDUZIDO: "ring-slate-300",
 };
 
 interface EscalaItem {

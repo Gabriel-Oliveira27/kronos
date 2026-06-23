@@ -2,65 +2,121 @@
 
 import { useState, useEffect } from "react";
 
-export function ThemeToggle() {
-  const [escuro, setEscuro] = useState(
-    () => typeof document !== "undefined" && document.documentElement.classList.contains("dark")
-  );
+type Tema = "claro" | "escuro" | "noturno";
 
-  // Detecta preferência do sistema na montagem — roda só no cliente, sem warning
-  // do React 19. Usuários com tema explícito (data-tema-explicito="1") já têm
-  // a classe correta vinda do servidor, então esse efeito é no-op para eles.
+const TEMAS: { valor: Tema; label: string; icone: React.ReactNode }[] = [
+  {
+    valor: "claro",
+    label: "Claro",
+    icone: (
+      <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4">
+        <path d="M12 3v2m0 14v2m9-9h-2M5 12H3m15.36 6.36-1.41-1.41M6.05 6.05 4.64 4.64m13.72 0-1.41 1.41M6.05 17.95l-1.41 1.41M16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0Z"
+          stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      </svg>
+    ),
+  },
+  {
+    valor: "escuro",
+    label: "Escuro",
+    icone: (
+      <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4">
+        <path d="M21 12.6A9 9 0 1 1 11.4 3a7 7 0 0 0 9.6 9.6Z"
+          stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+      </svg>
+    ),
+  },
+  {
+    valor: "noturno",
+    label: "Noturno",
+    icone: (
+      <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4">
+        <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2Z"
+          stroke="currentColor" strokeWidth="1.6" />
+        <path d="M12 2v20M2 12h10" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      </svg>
+    ),
+  },
+];
+
+function aplicarTema(tema: Tema) {
+  const html = document.documentElement;
+  html.dataset.tema = tema;
+  html.dataset.temaExplicito = "1";
+  html.classList.remove("dark", "night");
+  if (tema === "escuro" || tema === "noturno") html.classList.add("dark");
+  if (tema === "noturno") html.classList.add("night");
+}
+
+export function ThemeToggle() {
+  const [tema, setTema] = useState<Tema>("claro");
+  const [aberto, setAberto] = useState(false);
+
   useEffect(() => {
+    // Detecta tema inicial
     if (document.documentElement.dataset.temaExplicito === "0") {
       const prefereDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-      document.documentElement.classList.toggle("dark", prefereDark);
-      setEscuro(prefereDark);
+      const inicial: Tema = prefereDark ? "escuro" : "claro";
+      aplicarTema(inicial);
+      setTema(inicial);
+    } else {
+      const atual = document.documentElement.dataset.tema as Tema | undefined;
+      if (atual && ["claro", "escuro", "noturno"].includes(atual)) setTema(atual);
     }
   }, []);
 
-  async function alternar() {
-    const novoEscuro = !escuro;
-    setEscuro(novoEscuro);
-    document.documentElement.classList.toggle("dark", novoEscuro);
-    document.documentElement.dataset.temaExplicito = "1";
-
+  async function alternar(novoTema: Tema) {
+    setTema(novoTema);
+    setAberto(false);
+    aplicarTema(novoTema);
     try {
       await fetch("/api/v1/usuarios/me", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ temaBase: novoEscuro ? "dark" : "light" }),
+        body: JSON.stringify({ temaBase: novoTema }),
       });
     } catch {
-      // Preferência de tema não persistir não é crítico — a troca visual já aconteceu.
+      // Falha silenciosa — a troca visual já aconteceu
     }
   }
 
+  const atual = TEMAS.find((t) => t.valor === tema) ?? TEMAS[0];
+
   return (
-    <button
-      onClick={alternar}
-      aria-label={escuro ? "Mudar para tema claro" : "Mudar para tema escuro"}
-      title={escuro ? "Tema claro" : "Tema escuro"}
-      className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
-    >
-      {escuro ? (
-        <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5">
-          <path
-            d="M12 3v2m0 14v2m9-9h-2M5 12H3m15.36 6.36-1.41-1.41M6.05 6.05 4.64 4.64m13.72 0-1.41 1.41M6.05 17.95l-1.41 1.41M16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0Z"
-            stroke="currentColor"
-            strokeWidth="1.6"
-            strokeLinecap="round"
-          />
-        </svg>
-      ) : (
-        <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5">
-          <path
-            d="M21 12.6A9 9 0 1 1 11.4 3a7 7 0 0 0 9.6 9.6Z"
-            stroke="currentColor"
-            strokeWidth="1.6"
-            strokeLinejoin="round"
-          />
-        </svg>
+    <div className="relative">
+      <button
+        onClick={() => setAberto((v) => !v)}
+        title={`Tema: ${atual.label}`}
+        className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+      >
+        {atual.icone}
+      </button>
+
+      {aberto && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setAberto(false)} />
+          <div className="absolute right-0 top-full z-20 mt-1 w-36 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg dark:border-slate-800 dark:bg-slate-900">
+            {TEMAS.map((t) => (
+              <button
+                key={t.valor}
+                onClick={() => alternar(t.valor)}
+                className={`flex w-full items-center gap-2.5 px-3 py-2 text-sm transition-colors ${
+                  tema === t.valor
+                    ? "bg-brand-blue/10 text-brand-blue"
+                    : "text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800"
+                }`}
+              >
+                {t.icone}
+                {t.label}
+                {tema === t.valor && (
+                  <svg className="ml-auto h-3.5 w-3.5" viewBox="0 0 24 24" fill="none">
+                    <path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                )}
+              </button>
+            ))}
+          </div>
+        </>
       )}
-    </button>
+    </div>
   );
 }

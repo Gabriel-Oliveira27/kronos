@@ -1,44 +1,97 @@
 @import "tailwindcss";
 
-/* Dark mode controlado por classe (não por prefers-color-scheme), porque o
-   tema também pode vir de uma preferência salva por usuário (Usuario.temaBase). */
+/* ─── Dark mode via classe (não prefers-color-scheme) ─── */
 @custom-variant dark (&:where(.dark, .dark *));
+@custom-variant night (&:where(.night, .night *));
 
 @theme {
   --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
   --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
 
-  /* Identidade visual do Kronos — fixa, não deve ser alterada (briefing §3). */
-  --color-brand-blue: #2563eb;
-  --color-brand-blue-dark: #1d4ed8;
-  --color-brand-green: var(--accent-override, #22c55e);
+  /* Identidade visual Kronos — fixos */
+  --color-brand-blue:       #2563eb;
+  --color-brand-blue-dark:  #1d4ed8;
+  --color-brand-green:      var(--accent-override,      #22c55e);
   --color-brand-green-dark: var(--accent-override-dark, #16a34a);
-  --color-bg-light: #f8fafc;
-  --color-bg-dark: #0b1220;
 
-  --color-warning: #f59e0b;
-  --color-danger: #ef4444;
+  /* Tokens de tema — redefinidos por data-tema no <html> */
+  --color-bg-page:    var(--tema-bg-page,    #f8fafc);
+  --color-bg-surface: var(--tema-bg-surface,  #ffffff);
+  --color-bg-dark:    var(--tema-bg-page,    #f8fafc);  /* compat legacy */
+  --color-bg-light:   #f8fafc;
+
+  --color-text-base:  var(--tema-text,       #0f172a);
+  --color-border:     var(--tema-border,     #e2e8f0);
+  --color-active:     var(--tema-active,     #2563eb);
+  --color-secondary:  var(--tema-secondary,  #f1f5f9);
+
+  --color-warning:  #f59e0b;
+  --color-danger:   #ef4444;
   --color-danger-dark: #dc2626;
 }
 
+/* ══════════════════════════════════════════════════════════════
+   TEMA CLARO (padrão / data-tema="claro")
+   ══════════════════════════════════════════════════════════════ */
+:root,
+[data-tema="claro"] {
+  --tema-bg-page:    #ffffff;
+  --tema-bg-surface: #f8fafc;
+  --tema-text:       #0f172a;
+  --tema-border:     #e2e8f0;
+  --tema-active:     #2563eb;
+  --tema-secondary:  #f1f5f9;
+  color-scheme: light;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   TEMA ESCURO (data-tema="escuro")
+   ══════════════════════════════════════════════════════════════ */
+[data-tema="escuro"] {
+  --tema-bg-page:    #09090b;
+  --tema-bg-surface: #18181b;
+  --tema-text:       #fafafa;
+  --tema-border:     #27272a;
+  --tema-active:     #3b82f6;
+  --tema-secondary:  #27272a;
+  color-scheme: dark;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   TEMA NOTURNO (data-tema="noturno") — mais escuro que escuro
+   ══════════════════════════════════════════════════════════════ */
+[data-tema="noturno"] {
+  --tema-bg-page:    #000000;
+  --tema-bg-surface: #0a0a0a;
+  --tema-text:       #e4e4e7;
+  --tema-border:     #1c1c1e;
+  --tema-active:     #60a5fa;
+  --tema-secondary:  #111113;
+  color-scheme: dark;
+}
+
+/* ─── Compatibilidade com classes .dark e .night legadas ─── */
+.dark  { --tema-bg-page: #09090b; --tema-bg-surface: #18181b; --tema-text: #fafafa; --tema-border: #27272a; color-scheme: dark; }
+.night { --tema-bg-page: #000000; --tema-bg-surface: #0a0a0a; --tema-text: #e4e4e7; --tema-border: #1c1c1e; color-scheme: dark; }
+
+/* ─── Cores customizadas do usuário (via CSS vars inline no <html>) ─── */
+[style*="--user-text"]   { --tema-text:      var(--user-text,      var(--tema-text)); }
+[style*="--user-border"] { --tema-border:    var(--user-border,    var(--tema-border)); }
+[style*="--user-active"] { --tema-active:    var(--user-active,    var(--tema-active)); }
+[style*="--user-secondary"] { --tema-secondary: var(--user-secondary, var(--tema-secondary)); }
+
 html {
-  color-scheme: light dark;
+  background-color: var(--tema-bg-page);
+  color: var(--tema-text);
 }
 
 body {
   font-family: var(--font-sans);
-  background-color: var(--color-bg-light);
-  color: #0f172a;
+  background-color: var(--tema-bg-page);
+  color: var(--tema-text);
 }
 
-.dark body {
-  background-color: var(--color-bg-dark);
-  color: #e2e8f0;
-}
-
-/* Tabular numerals para qualquer dado de tempo/data — horários e datas nunca
-   devem "dançar" de largura em uma lista. */
 .tabular {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;

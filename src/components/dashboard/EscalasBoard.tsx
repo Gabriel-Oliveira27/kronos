@@ -27,7 +27,6 @@ const TIPOS = [
   { valor: "PLANTAO",         sigla: "PLT", label: "Plantão",       cor: "bg-brand-blue" },
   { valor: "HOME_OFFICE",     sigla: "HO",  label: "Home office",   cor: "bg-brand-green" },
   { valor: "FOLGA",           sigla: "FOL", label: "Folga",         cor: "bg-amber-400" },
-  { valor: "SABADO_REDUZIDO", sigla: "SR",  label: "Sáb. reduzido", cor: "bg-slate-300 dark:bg-slate-700" },
 ] as const;
 
 // Ring colorido nos avatares indicando o tipo de escala
@@ -36,7 +35,6 @@ const RING_TIPO: Record<string, string> = {
   PLANTAO:         "ring-blue-500",
   HOME_OFFICE:     "ring-green-500",
   FOLGA:           "ring-amber-400",
-  SABADO_REDUZIDO: "ring-slate-300",
 };
 
 // Fundo dos botões de tipo rápido quando ativo
@@ -45,7 +43,6 @@ const COR_ATIVO: Record<string, string> = {
   PLANTAO:         "bg-blue-500 text-white",
   HOME_OFFICE:     "bg-green-500 text-white",
   FOLGA:           "bg-amber-400 text-amber-950",
-  SABADO_REDUZIDO: "bg-slate-300 text-slate-800 dark:bg-slate-600 dark:text-white",
 };
 
 const DIAS_SEMANA = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
