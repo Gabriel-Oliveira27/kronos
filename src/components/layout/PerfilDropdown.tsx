@@ -79,6 +79,7 @@ export function PerfilDropdown({ nomeCompleto, papel, fotoUrl, temaBase, temaCon
     document.documentElement.classList.remove("dark","night");
     if (temaAtivo === "escuro" || temaAtivo === "noturno") document.documentElement.classList.add("dark");
     if (temaAtivo === "noturno") document.documentElement.classList.add("night");
+    try { localStorage.setItem("kronos-tema", temaAtivo); } catch { /* ignore */ }
     // Aplica cores customizadas
     const vars: Record<string, string> = {};
     if (config.textColor)      vars["--user-text"]       = config.textColor;
@@ -93,7 +94,9 @@ export function PerfilDropdown({ nomeCompleto, papel, fotoUrl, temaBase, temaCon
 
   async function sair() {
     await fetch("/api/v1/auth/logout", { method: "POST" });
-    router.push("/login");
+    // Recarga completa: garante que o cookie limpo seja relido pelo servidor e
+    // leva direto para a landing, sem ficar preso no estado anterior.
+    window.location.href = "/";
   }
 
   function fechar() { setAberto(false); setAba(null); setMsg(null); }

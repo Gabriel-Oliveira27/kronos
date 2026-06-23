@@ -4,8 +4,9 @@ import { useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { Textarea, Select } from "@/components/ui/Field";
-import { formatarDataHora, cn } from "@/lib/utils";
+import { Textarea } from "@/components/ui/Field";
+import { VisibilidadeSwitch } from "@/components/ui/VisibilidadeSwitch";
+import { formatarDataHora } from "@/lib/utils";
 
 export interface ConhecimentoItemView {
   id: string; titulo: string; conteudo: string; categoria: string | null;
@@ -29,6 +30,12 @@ const IcoGlobo = () => (
 const IcoCadeado = () => (
   <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4 shrink-0">
     <path d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"
+      stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+const IcoPessoa = () => (
+  <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4 shrink-0">
+    <path d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z"
       stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
@@ -144,11 +151,30 @@ export function ConhecimentoBoard({
               <Input label="Tags (separadas por vírgula)" value={form.tags}
                 onChange={e => setForm(f => ({ ...f, tags: e.target.value }))} />
             </div>
-            <Select label="Visibilidade" value={form.visibilidade}
-              onChange={e => setForm(f => ({ ...f, visibilidade: e.target.value as "PUBLICO" | "PRIVADO" }))}>
-              <option value="PRIVADO">🔒 Privado — só eu vejo</option>
-              <option value="PUBLICO">🌐 Público — todos os usuários</option>
-            </Select>
+            <div>
+              <p className="mb-1.5 text-sm font-medium text-slate-700 dark:text-slate-200">Visibilidade</p>
+              <div className="flex items-center gap-3">
+                <VisibilidadeSwitch
+                  publico={form.visibilidade === "PUBLICO"}
+                  onChange={(pub) => setForm(f => ({ ...f, visibilidade: pub ? "PUBLICO" : "PRIVADO" }))}
+                />
+                <div className="flex items-center gap-2">
+                  <span className={form.visibilidade === "PUBLICO" ? "text-brand-blue" : "text-slate-400"}>
+                    {form.visibilidade === "PUBLICO" ? <IcoGlobo /> : <IcoPessoa />}
+                  </span>
+                  <div>
+                    <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                      {form.visibilidade === "PUBLICO" ? "Público" : "Privado"}
+                    </p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      {form.visibilidade === "PUBLICO"
+                        ? "Todos os usuários podem ver este item."
+                        : "Somente você vê este item (administradores também)."}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
             {/* Aviso ao escolher público */}
             {form.visibilidade === "PUBLICO" && (
               <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300">
@@ -171,14 +197,14 @@ export function ConhecimentoBoard({
       )}
 
       {/* Lista de itens */}
-      <div className="flex flex-col gap-3">
+      <div className="grid items-start gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {itensFiltrados.length === 0 && (
-          <p className="py-8 text-center text-sm text-slate-500 dark:text-slate-400">
+          <p className="col-span-full py-8 text-center text-sm text-slate-500 dark:text-slate-400">
             {busca ? "Nenhum resultado encontrado." : "Nenhum item ainda. Crie o primeiro!"}
           </p>
         )}
         {itensFiltrados.map(item => (
-          <Card key={item.id}>
+          <Card key={item.id} className={mostrando === item.id ? "sm:col-span-2 lg:col-span-3" : ""}>
             <div className="flex items-start justify-between gap-3">
               <button
                 onClick={() => setMostrando(m => m === item.id ? null : item.id)}
@@ -193,6 +219,11 @@ export function ConhecimentoBoard({
                   {item.categoria && (
                     <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">
                       {item.categoria}
+                    </span>
+                  )}
+                  {isAdmin && item.autorId !== usuarioId && item.visibilidade === "PRIVADO" && (
+                    <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:bg-amber-500/15 dark:text-amber-300">
+                      privado de {item.autor.nomeCompleto.split(" ")[0]}
                     </span>
                   )}
                 </div>

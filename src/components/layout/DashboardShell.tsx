@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { PerfilDropdown } from "@/components/layout/PerfilDropdown";
+import { NavLoadingOverlay } from "@/components/layout/NavLoadingOverlay";
 import type { Papel } from "@prisma/client";
 
 interface TemaConfig { textColor?: string; borderColor?: string; activeColor?: string; secondaryColor?: string }
@@ -28,6 +29,7 @@ export function DashboardShell({
 
   return (
     <div className="flex min-h-screen" style={{ backgroundColor: "var(--tema-bg-page)" }}>
+      <NavLoadingOverlay />
       {/* Sidebar desktop */}
       <aside className="hidden w-64 shrink-0 border-r lg:block" style={{ borderColor: "var(--tema-border)", backgroundColor: "var(--tema-bg-surface)" }}>
         <Sidebar papel={papel} className="sticky top-0 h-screen overflow-y-auto" />

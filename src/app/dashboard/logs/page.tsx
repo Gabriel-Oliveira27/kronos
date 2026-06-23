@@ -1,11 +1,59 @@
 import { prisma } from "@/lib/prisma";
 import { usuarioAtual } from "@/lib/session";
-import { Card } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Card";
-import { FiltroTipoLog } from "@/components/dashboard/FiltroTipoLog";
-import { formatarDataHora } from "@/lib/utils";
+import { ROTULOS_PAPEL, ROTULOS_TIPO_DIA } from "@/lib/utils";
+import { AuditoriaBoard, type ItemLog } from "@/components/dashboard/AuditoriaBoard";
 
-const TOM_POR_TIPO: Record<string, "green" | "red" | "amber" | "blue" | "slate"> = {
+type Tom = ItemLog["tom"];
+
+// Eventos de "mudança" — vão para a aba Auditoria.
+const TIPOS_AUDITORIA = [
+  "ACESSO_CRIADO",
+  "ACESSO_EDITADO",
+  "SOLICITACAO_CRIADA",
+  "SOLICITACAO_REJEITADA",
+  "ESCALA_ALTERADA",
+  "CONHECIMENTO_EXCLUIDO",
+  "PONTO_EXCLUIDO",
+];
+
+// Acessos e erros — vão para a aba "Acessos & Erros".
+const TIPOS_SISTEMA = [
+  "LOGIN_SUCESSO",
+  "LOGIN_FALHA",
+  "LOGOUT",
+  "ACESSO_NEGADO",
+  "ERRO_API",
+  "ERRO_BANCO",
+  "UPLOAD_FOTO_FALHA",
+];
+
+const ROTULO_TIPO: Record<string, string> = {
+  ACESSO_CRIADO: "Usuário criado",
+  ACESSO_EDITADO: "Usuário editado",
+  SOLICITACAO_CRIADA: "Solicitação",
+  SOLICITACAO_REJEITADA: "Solicitação rejeitada",
+  ESCALA_ALTERADA: "Escala alterada",
+  CONHECIMENTO_EXCLUIDO: "Conhecimento excluído",
+  PONTO_EXCLUIDO: "Ponto excluído",
+  REGISTRO_EXCLUIDO: "Registro excluído",
+  LOGIN_SUCESSO: "Login",
+  LOGIN_FALHA: "Falha de login",
+  LOGOUT: "Logout",
+  ACESSO_NEGADO: "Acesso negado",
+  ERRO_API: "Erro de API",
+  ERRO_BANCO: "Erro de banco",
+  UPLOAD_FOTO_FALHA: "Upload de foto",
+};
+
+const TOM_TIPO: Record<string, Tom> = {
+  ACESSO_CRIADO: "green",
+  ACESSO_EDITADO: "blue",
+  SOLICITACAO_CRIADA: "blue",
+  SOLICITACAO_REJEITADA: "amber",
+  ESCALA_ALTERADA: "blue",
+  CONHECIMENTO_EXCLUIDO: "amber",
+  PONTO_EXCLUIDO: "amber",
+  REGISTRO_EXCLUIDO: "amber",
   LOGIN_SUCESSO: "green",
   LOGIN_FALHA: "red",
   LOGOUT: "slate",
@@ -13,20 +61,46 @@ const TOM_POR_TIPO: Record<string, "green" | "red" | "amber" | "blue" | "slate">
   ERRO_API: "red",
   ERRO_BANCO: "red",
   UPLOAD_FOTO_FALHA: "red",
-  SOLICITACAO_REJEITADA: "amber",
-  SOLICITACAO_CRIADA: "blue",
-  ACESSO_CRIADO: "green",
-  ACESSO_EDITADO: "blue",
-  ESCALA_ALTERADA: "blue",
-  CONHECIMENTO_EXCLUIDO: "amber",
-  PONTO_EXCLUIDO: "amber",
 };
 
-export default async function LogsPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ tipo?: string }>;
-}) {
+function obj(detalhe: unknown): Record<string, unknown> {
+  return detalhe && typeof detalhe === "object" ? (detalhe as Record<string, unknown>) : {};
+}
+
+function descreverAuditoria(tipo: string, detalhe: unknown, nomePor: Record<string, string>): string {
+  const d = obj(detalhe);
+  const nome = (id: unknown) => nomePor[String(id)] ?? String(id ?? "");
+  switch (tipo) {
+    case "ACESSO_CRIADO":
+      return `${nome(d.usuarioCriadoId)} • papel ${ROTULOS_PAPEL[String(d.papel)] ?? d.papel}`;
+    case "ACESSO_EDITADO":
+      return `${nome(d.usuarioEditadoId)}${Array.isArray(d.campos) ? ` • campos: ${(d.campos as string[]).join(", ")}` : ""}`;
+    case "SOLICITACAO_CRIADA":
+      return String(d.nomeCompleto ?? "");
+    case "SOLICITACAO_REJEITADA":
+      return `solicitação ${d.solicitacaoId ?? ""}`;
+    case "ESCALA_ALTERADA": {
+      const alvo = nome(d.usuarioDestino);
+      const acao = d.acao === "remocao" ? "remoção" : d.tipo ? (ROTULOS_TIPO_DIA[String(d.tipo)] ?? String(d.tipo)) : "";
+      return `${alvo}${acao ? ` • ${acao}` : ""}`;
+    }
+    case "CONHECIMENTO_EXCLUIDO":
+      return `item ${d.itemId ?? ""}`;
+    case "PONTO_EXCLUIDO":
+      return `registro ${d.id ?? ""}`;
+    default:
+      return "";
+  }
+}
+
+function descreverSistema(tipo: string, detalhe: unknown): string {
+  const d = obj(detalhe);
+  if (tipo === "LOGIN_FALHA") return d.username ? `usuário "${d.username}"` : "";
+  if (tipo === "ERRO_API" || tipo === "ERRO_BANCO" || tipo === "UPLOAD_FOTO_FALHA") return String(d.mensagem ?? "");
+  return "";
+}
+
+export default async function LogsPage() {
   const usuario = await usuarioAtual();
   if (!usuario) return null;
 
@@ -40,62 +114,81 @@ export default async function LogsPage({
     );
   }
 
-  const { tipo } = await searchParams;
+  const ehAdmin = usuario.papel === "ADMIN";
 
-  const logs = await prisma.logEvento.findMany({
-    where: tipo ? { tipo } : {},
-    orderBy: { criadoEm: "desc" },
-    take: 150,
-    include: { usuario: { select: { nomeCompleto: true, username: true } } },
-  });
+  const [auditLogs, sistemaLogs, registrosExcluidos] = await Promise.all([
+    prisma.logEvento.findMany({
+      where: { tipo: { in: TIPOS_AUDITORIA } },
+      orderBy: { criadoEm: "desc" },
+      take: 150,
+      include: { usuario: { select: { nomeCompleto: true } } },
+    }),
+    prisma.logEvento.findMany({
+      where: { tipo: { in: TIPOS_SISTEMA } },
+      orderBy: { criadoEm: "desc" },
+      take: 150,
+      include: { usuario: { select: { nomeCompleto: true } } },
+    }),
+    // Exclusões (soft delete) só são auditáveis por administradores.
+    ehAdmin
+      ? prisma.registroExcluido.findMany({ orderBy: { excluidoEm: "desc" }, take: 150 })
+      : Promise.resolve([] as { id: string; tabelaOrigem: string; registroId: string; excluidoPorId: string; excluidoEm: Date }[]),
+  ]);
+
+  // Resolve os nomes dos usuários referenciados nos detalhes / como autores.
+  const idsAlvo = new Set<string>();
+  for (const l of auditLogs) {
+    const d = obj(l.detalhe);
+    for (const k of ["usuarioCriadoId", "usuarioEditadoId", "usuarioDestino"]) {
+      if (d[k]) idsAlvo.add(String(d[k]));
+    }
+  }
+  for (const r of registrosExcluidos) idsAlvo.add(r.excluidoPorId);
+
+  const nomes =
+    idsAlvo.size > 0
+      ? await prisma.usuario.findMany({ where: { id: { in: [...idsAlvo] } }, select: { id: true, nomeCompleto: true } })
+      : [];
+  const nomePor: Record<string, string> = {};
+  nomes.forEach((u) => (nomePor[u.id] = u.nomeCompleto));
+
+  const auditoria: ItemLog[] = [
+    ...auditLogs.map((l) => ({
+      id: l.id,
+      rotulo: ROTULO_TIPO[l.tipo] ?? l.tipo,
+      tom: TOM_TIPO[l.tipo] ?? "slate",
+      descricao: descreverAuditoria(l.tipo, l.detalhe, nomePor),
+      ator: l.usuario?.nomeCompleto ?? "Sistema",
+      quando: l.criadoEm.toISOString(),
+    })),
+    ...registrosExcluidos.map((r) => ({
+      id: `re_${r.id}`,
+      rotulo: ROTULO_TIPO.REGISTRO_EXCLUIDO,
+      tom: "amber" as Tom,
+      descricao: `${r.tabelaOrigem} • registro ${r.registroId}`,
+      ator: nomePor[r.excluidoPorId] ?? r.excluidoPorId,
+      quando: r.excluidoEm.toISOString(),
+    })),
+  ].sort((a, b) => b.quando.localeCompare(a.quando));
+
+  const sistema: ItemLog[] = sistemaLogs.map((l) => ({
+    id: l.id,
+    rotulo: ROTULO_TIPO[l.tipo] ?? l.tipo,
+    tom: TOM_TIPO[l.tipo] ?? "slate",
+    descricao: descreverSistema(l.tipo, l.detalhe),
+    ator: l.usuario?.nomeCompleto ?? "—",
+    quando: l.criadoEm.toISOString(),
+  }));
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="font-display text-2xl font-semibold text-slate-900 dark:text-white">Logs</h1>
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            Login, erros de API/banco e principais eventos do sistema.
-          </p>
-        </div>
-        <FiltroTipoLog valorAtual={tipo ?? ""} />
+      <div>
+        <h1 className="font-display text-2xl font-semibold text-slate-900 dark:text-white">Auditoria</h1>
+        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+          Alterações de usuários, escalas e exclusões — e os acessos e erros do sistema.
+        </p>
       </div>
-
-      <Card className="overflow-x-auto p-0">
-        <table className="w-full text-sm">
-          <thead className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-400 dark:border-slate-800 dark:text-slate-500">
-            <tr>
-              <th className="px-4 py-3 font-medium">Tipo</th>
-              <th className="px-4 py-3 font-medium">Usuário</th>
-              <th className="px-4 py-3 font-medium">Detalhe</th>
-              <th className="px-4 py-3 font-medium">Quando</th>
-            </tr>
-          </thead>
-          <tbody>
-            {logs.map((log) => (
-              <tr key={log.id} className="border-b border-slate-100 last:border-0 dark:border-slate-800/60">
-                <td className="px-4 py-3">
-                  <Badge tone={TOM_POR_TIPO[log.tipo] ?? "slate"}>{log.tipo}</Badge>
-                </td>
-                <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
-                  {log.usuario?.nomeCompleto ?? "—"}
-                </td>
-                <td className="max-w-xs truncate px-4 py-3 font-mono text-xs text-slate-500 dark:text-slate-400">
-                  {log.detalhe ? JSON.stringify(log.detalhe) : "—"}
-                </td>
-                <td className="tabular px-4 py-3 text-slate-500 dark:text-slate-400">
-                  {formatarDataHora(log.criadoEm)}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {logs.length === 0 && (
-          <p className="p-6 text-center text-sm text-slate-500 dark:text-slate-400">
-            Nenhum evento registrado para este filtro.
-          </p>
-        )}
-      </Card>
+      <AuditoriaBoard auditoria={auditoria} sistema={sistema} />
     </div>
   );
 }

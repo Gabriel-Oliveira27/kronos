@@ -45,6 +45,9 @@ function aplicarTema(tema: Tema) {
   html.classList.remove("dark", "night");
   if (tema === "escuro" || tema === "noturno") html.classList.add("dark");
   if (tema === "noturno") html.classList.add("night");
+  // Persiste para manter o tema consistente em todas as telas (inclusive
+  // públicas, sem login) — lido pelo script de inicialização no layout raiz.
+  try { localStorage.setItem("kronos-tema", tema); } catch { /* ignore */ }
 }
 
 export function ThemeToggle() {
@@ -52,16 +55,10 @@ export function ThemeToggle() {
   const [aberto, setAberto] = useState(false);
 
   useEffect(() => {
-    // Detecta tema inicial
-    if (document.documentElement.dataset.temaExplicito === "0") {
-      const prefereDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-      const inicial: Tema = prefereDark ? "escuro" : "claro";
-      aplicarTema(inicial);
-      setTema(inicial);
-    } else {
-      const atual = document.documentElement.dataset.tema as Tema | undefined;
-      if (atual && ["claro", "escuro", "noturno"].includes(atual)) setTema(atual);
-    }
+    // O tema já foi resolvido pelo script de inicialização (layout raiz) ou
+    // pelo servidor. Aqui só sincronizamos o estado visual do botão.
+    const atual = document.documentElement.dataset.tema as Tema | undefined;
+    if (atual && ["claro", "escuro", "noturno"].includes(atual)) setTema(atual);
   }, []);
 
   async function alternar(novoTema: Tema) {

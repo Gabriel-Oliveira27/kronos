@@ -11,12 +11,10 @@ export default async function ConhecimentoPage() {
   const itens = await prisma.conhecimentoItem.findMany({
     where: {
       deletadoEm: null,
-      OR: [
-        { visibilidade: "PUBLICO" },
-        { autorId: usuario.id },
-        // Admin/Suporte veem todos mas não exibimos isso na UI
-        ...(isAdmin ? [{}] : []),
-      ],
+      // Admin/Suporte veem tudo (inclusive privados de outros); demais só veem
+      // os públicos e os próprios. Forma explícita — objeto vazio dentro de OR
+      // não é confiável no Prisma para "ver tudo".
+      ...(isAdmin ? {} : { OR: [{ visibilidade: "PUBLICO" }, { autorId: usuario.id }] }),
     },
     orderBy: { atualizadoEm: "desc" },
     include: { autor: { select: { id: true, nomeCompleto: true } } },
