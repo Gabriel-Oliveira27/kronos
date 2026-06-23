@@ -2,7 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { usuarioAtual } from "@/lib/session";
 import { Card } from "@/components/ui/Card";
-import { formatarData } from "@/lib/utils";
+import { formatarData, horarioDoTipo } from "@/lib/utils";
 
 async function proximaData(usuarioId: string, tipo: "PLANTAO" | "HOME_OFFICE" | "FOLGA") {
   const hoje = new Date();
@@ -14,12 +14,15 @@ async function proximaData(usuarioId: string, tipo: "PLANTAO" | "HOME_OFFICE" | 
   return escala?.data ?? null;
 }
 
-function CardProximo({ titulo, data, tom }: { titulo: string; data: Date | null; tom: string }) {
+function CardProximo({ titulo, data, tom, sub }: { titulo: string; data: Date | null; tom: string; sub?: string }) {
   return (
     <Card>
       <p className="font-mono text-[11px] uppercase tracking-wider text-slate-400 dark:text-slate-500">{titulo}</p>
       {data ? (
-        <p className={`mt-2 font-display text-2xl font-semibold ${tom}`}>{formatarData(data)}</p>
+        <>
+          <p className={`mt-2 font-display text-2xl font-semibold ${tom}`}>{formatarData(data)}</p>
+          {sub && <p className="mt-0.5 font-mono text-xs text-slate-400 dark:text-slate-500">{sub}</p>}
+        </>
       ) : (
         <p className="mt-2 font-display text-xl font-medium text-slate-400 dark:text-slate-500">
           Indefinido / aguardando
@@ -86,7 +89,7 @@ export default async function DashboardHomePage() {
       {ehSuporte && (
         <div className="grid gap-4 sm:grid-cols-3">
           <CardProximo titulo="Próximo plantão"    data={proximoPlantao}    tom="text-brand-blue" />
-          <CardProximo titulo="Próximo home office" data={proximoHomeOffice} tom="text-brand-green-dark dark:text-brand-green" />
+          <CardProximo titulo="Próximo home office" data={proximoHomeOffice} tom="text-brand-green-dark dark:text-brand-green" sub={horarioDoTipo("HOME_OFFICE") ?? undefined} />
           <CardProximo titulo="Próxima folga"       data={proximaFolga}      tom="text-amber-600 dark:text-amber-400" />
         </div>
       )}

@@ -4,9 +4,9 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { Logo } from "@/components/ui/Logo";
 import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
-import { cn } from "@/lib/utils";
+import { cn, horarioDoTipo } from "@/lib/utils";
 
 const STORAGE_KEY = "kronos_ps";
 
@@ -128,7 +128,7 @@ export default function EscalaPublicaPage() {
             Digite a palavra secreta para visualizar a escala da equipe sem precisar fazer login.
           </p>
           <div className="mt-6 flex flex-col gap-4">
-            <Input label="Palavra secreta" type="password" placeholder="••••••••"
+            <PasswordInput label="Palavra secreta" placeholder="••••••••"
               value={psInput} onChange={(e) => setPsInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && autenticar()} autoFocus error={erro ?? undefined} />
             <Button onClick={autenticar} disabled={!psInput.trim()}>Ver escala</Button>
@@ -305,7 +305,10 @@ export default function EscalaPublicaPage() {
                           <AvatarPublico usuario={u} tipo={e!.tipo} size={28} />
                           <div className="min-w-0">
                             <p className="truncate text-xs font-semibold text-slate-800 dark:text-slate-200">{u.nomeCompleto}</p>
-                            <p className="text-[10px] text-slate-500 dark:text-slate-400">{ROTULOS_TIPO[e!.tipo] ?? e!.tipo}</p>
+                            <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                              {ROTULOS_TIPO[e!.tipo] ?? e!.tipo}
+                              {horarioDoTipo(e!.tipo) && <span className="text-brand-green-dark dark:text-brand-green"> · {horarioDoTipo(e!.tipo)}</span>}
+                            </p>
                           </div>
                         </div>
                       ))}

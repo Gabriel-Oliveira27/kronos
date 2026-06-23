@@ -11,7 +11,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   // mas que a sessão JWT não carrega para manter o token pequeno.
   const usuario = await prisma.usuario.findUnique({
     where: { id: sessao.id },
-    select: { id: true, nomeCompleto: true, papel: true, fotoUrl: true, temaBase: true, temaConfig: true, ativo: true },
+    select: { id: true, nomeCompleto: true, papel: true, fotoUrl: true, temaBase: true, corDestaque: true, temaConfig: true, ativo: true },
   });
 
   if (!usuario || !usuario.ativo) redirect("/login");
@@ -22,6 +22,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       nomeCompleto={usuario.nomeCompleto}
       fotoUrl={usuario.fotoUrl}
       temaBase={usuario.temaBase}
+      corDestaque={usuario.corDestaque}
       temaConfig={usuario.temaConfig as Record<string, string> | null}
     >
       {children}

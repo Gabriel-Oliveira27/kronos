@@ -11,12 +11,13 @@ import type { Papel } from "@prisma/client";
 interface TemaConfig { textColor?: string; borderColor?: string; activeColor?: string; secondaryColor?: string }
 
 export function DashboardShell({
-  papel, nomeCompleto, fotoUrl, temaBase, temaConfig, children,
+  papel, nomeCompleto, fotoUrl, temaBase, corDestaque, temaConfig, children,
 }: {
   papel: Papel;
   nomeCompleto: string;
   fotoUrl?: string | null;
   temaBase?: string | null;
+  corDestaque?: string | null;
   temaConfig?: TemaConfig | null;
   children: ReactNode;
 }) {
@@ -66,6 +67,7 @@ export function DashboardShell({
               papel={papel}
               fotoUrl={fotoUrl ?? null}
               temaBase={temaBase}
+              corDestaque={corDestaque}
               temaConfig={temaConfig}
             />
           </div>

@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { cn } from "@/lib/utils";
+import { cn, horarioDoTipo } from "@/lib/utils";
+import { EscalaFimDeSemana, montarLinhasFds } from "@/components/dashboard/EscalaFimDeSemana";
 
 export interface UsuarioResumo {
   id: string;
@@ -113,6 +114,7 @@ export function EscalasBoard({
   usuarios: usuariosIniciais,
   escalasIniciais,
   diasDoMes,
+  mesAtivo,
 }: {
   usuarios: UsuarioResumo[];
   escalasIniciais: EscalaView[];
@@ -130,6 +132,12 @@ export function EscalasBoard({
   const [setorAvulso, setSetorAvulso] = useState("Geral");
   const [adicionando, setAdicionando] = useState(false);
   const [erroAvulso, setErroAvulso] = useState<string | null>(null);
+
+  // Exportação (imagem/PDF capturam o calendário; Excel vem do servidor)
+  const exportRef = useRef<HTMLDivElement>(null);
+  const [menuExport, setMenuExport] = useState(false);
+  const [exportando, setExportando] = useState<string | null>(null);
+  const [aba, setAba] = useState<"calendario" | "fds">("calendario");
 
   // Mapa O(1): "usuarioId_YYYY-MM-DD" → EscalaView
   const mapa = useMemo(() => {
@@ -214,9 +222,149 @@ export function EscalasBoard({
     finally { setAdicionando(false); }
   }
 
+  function baixarArquivo(href: string, nome: string) {
+    const a = document.createElement("a");
+    a.href = href;
+    a.download = nome;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+
+  async function exportarImagem() {
+    if (!exportRef.current) return;
+    setMenuExport(false);
+    setExportando("png");
+    try {
+      const { toPng } = await import("html-to-image");
+      const bg = getComputedStyle(document.body).backgroundColor || "#ffffff";
+      const url = await toPng(exportRef.current, { pixelRatio: 2, cacheBust: true, backgroundColor: bg });
+      baixarArquivo(url, `escala-${mesAtivo ?? "mes"}.png`);
+    } catch {
+      /* silencioso */
+    } finally {
+      setExportando(null);
+    }
+  }
+
+  async function exportarPdf() {
+    setMenuExport(false);
+    setExportando("pdf");
+    try {
+      const { jsPDF } = await import("jspdf");
+      const autoTable = (await import("jspdf-autotable")).default;
+      const linhas = montarLinhasFds(usuarios, escalas, diasDoMes);
+
+      const fmt = (iso: string) => {
+        const [a, m, d] = iso.slice(0, 10).split("-");
+        return `${d}/${m}/${a}`;
+      };
+      const nomeMes = mesAtivo
+        ? (() => {
+            const [a, m] = mesAtivo.split("-").map(Number);
+            return new Date(a, m - 1, 1).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+          })()
+        : "";
+
+      const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
+      doc.setFontSize(14);
+      doc.text(`Escala de fim de semana${nomeMes ? " — " + nomeMes : ""}`, 40, 40);
+
+      autoTable(doc, {
+        startY: 56,
+        head: [["Data", "Plantão FDS", "Sábado Expediente", "Sábado de Folga"]],
+        body: linhas.map((l) => [
+          `${fmt(l.sab)} e ${fmt(l.dom)}`,
+          l.plantao.join(" / "),
+          l.expediente.join(" / "),
+          l.folga.join(" / "),
+        ]),
+        styles: { fontSize: 9, cellPadding: 6 },
+        headStyles: { fillColor: [37, 99, 235], textColor: 255 },
+        alternateRowStyles: { fillColor: [248, 250, 252] },
+      });
+
+      const comHo = linhas.filter((l) => l.homeOffice.length > 0);
+      if (comHo.length > 0) {
+        const docAny = doc as unknown as { lastAutoTable?: { finalY: number } };
+        let y = (docAny.lastAutoTable?.finalY ?? 56) + 24;
+        doc.setFontSize(11);
+        doc.text("Home office no sábado (14h - 22h)", 40, y);
+        doc.setFontSize(9);
+        for (const l of comHo) {
+          y += 16;
+          doc.text(`${fmt(l.sab)} — ${l.homeOffice.join(", ")}`, 40, y);
+        }
+      }
+
+      doc.save(`escala-${mesAtivo ?? "mes"}.pdf`);
+    } catch {
+      /* silencioso */
+    } finally {
+      setExportando(null);
+    }
+  }
+
+  function exportarExcel() {
+    setMenuExport(false);
+    baixarArquivo(`/api/v1/escalas/export?mes=${mesAtivo ?? ""}`, `escala-${mesAtivo ?? "mes"}.xlsx`);
+  }
+
   return (
-    <div className="flex flex-col gap-4 lg:flex-row">
-      {/* ── Coluna esquerda: lista da equipe ── */}
+    <div className="flex flex-col gap-3">
+      {/* Abas + exportação (a exportação segue o formato de planilha do fim de semana) */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex gap-1">
+          {([["calendario", "Calendário"], ["fds", "Fim de semana"]] as const).map(([id, label]) => (
+            <button
+              key={id}
+              onClick={() => setAba(id)}
+              className={cn(
+                "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+                aba === id
+                  ? "bg-brand-blue text-white"
+                  : "text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+              )}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        {aba === "fds" && (
+          <div className="relative">
+            <Button variant="outline" size="sm" onClick={() => setMenuExport((v) => !v)} loading={!!exportando}>
+              <svg viewBox="0 0 24 24" fill="none" className="mr-1.5 h-4 w-4">
+                <path d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"
+                  stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              Exportar
+            </Button>
+            {menuExport && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setMenuExport(false)} />
+                <div className="absolute right-0 top-full z-20 mt-1 w-44 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg dark:border-slate-800 dark:bg-slate-900">
+                  <button onClick={exportarExcel} disabled={!!exportando}
+                    className="block w-full px-3 py-2 text-left text-sm text-slate-600 hover:bg-slate-50 disabled:opacity-50 dark:text-slate-300 dark:hover:bg-slate-800">
+                    Excel (.xlsx)
+                  </button>
+                  <button onClick={exportarPdf} disabled={!!exportando}
+                    className="block w-full px-3 py-2 text-left text-sm text-slate-600 hover:bg-slate-50 disabled:opacity-50 dark:text-slate-300 dark:hover:bg-slate-800">
+                    {exportando === "pdf" ? "Gerando PDF…" : "PDF"}
+                  </button>
+                  <button onClick={exportarImagem} disabled={!!exportando}
+                    className="block w-full px-3 py-2 text-left text-sm text-slate-600 hover:bg-slate-50 disabled:opacity-50 dark:text-slate-300 dark:hover:bg-slate-800">
+                    {exportando === "png" ? "Gerando imagem…" : "Imagem (PNG)"}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+
+      {aba === "calendario" && (
+      <div className="flex flex-col gap-4 lg:flex-row">
+        {/* ── Coluna esquerda: lista da equipe ── */}
       <div className="hidden w-44 shrink-0 flex-col gap-2 lg:flex">
         <div className="rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900/60">
           <div className="border-b border-slate-200 px-3 py-2 dark:border-slate-800">
@@ -369,6 +517,11 @@ export function EscalasBoard({
                 const chave = `${u.id}_${diaSelecionado}`;
                 const escala = mapa.get(chave);
                 const carregando = salvandoChave === chave;
+                // Sábado: quem está de folga ou home office não pode ser
+                // escalado para trabalhar presencialmente (Normal/Plantão).
+                const ehSabado = new Date(diaSelecionado + "T12:00:00Z").getUTCDay() === 6;
+                const indisponivelSabado = ehSabado && (escala?.tipo === "FOLGA" || escala?.tipo === "HOME_OFFICE");
+                const horario = horarioDoTipo(escala?.tipo);
 
                 return (
                   <div key={u.id}>
@@ -385,9 +538,12 @@ export function EscalasBoard({
                             {iniciais(u.nomeCompleto)}
                           </span>
                         )}
-                        <p className="truncate text-xs font-semibold text-slate-800 dark:text-slate-100" title={u.nomeCompleto}>
-                          {u.nomeCompleto}
-                        </p>
+                        <div className="min-w-0">
+                          <p className="truncate text-xs font-semibold text-slate-800 dark:text-slate-100" title={u.nomeCompleto}>
+                            {u.nomeCompleto}
+                          </p>
+                          {horario && <p className="text-[10px] font-medium text-brand-green-dark dark:text-brand-green">{horario}</p>}
+                        </div>
                       </div>
                       {escala && (
                         <button
@@ -405,16 +561,17 @@ export function EscalasBoard({
                     <div className="flex flex-wrap gap-1">
                       {TIPOS.map((t) => {
                         const ativo = escala?.tipo === t.valor;
+                        const bloqueado = indisponivelSabado && (t.valor === "NORMAL" || t.valor === "PLANTAO");
                         return (
                           <button
                             key={t.valor}
                             onClick={() => definirTipo(u.id, diaSelecionado, t.valor)}
-                            disabled={carregando}
-                            title={t.label}
+                            disabled={carregando || bloqueado}
+                            title={bloqueado ? "Indisponível: folga ou home office no sábado" : t.label}
                             className={cn(
                               "rounded px-2 py-0.5 text-[10px] font-semibold transition-all",
                               ativo ? COR_ATIVO[t.valor] : "bg-slate-100 text-slate-500 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700",
-                              carregando && "opacity-50 cursor-not-allowed"
+                              (carregando || bloqueado) && "opacity-40 cursor-not-allowed line-through"
                             )}
                           >
                             {carregando && ativo ? "..." : t.sigla}
@@ -460,7 +617,19 @@ export function EscalasBoard({
             )}
           </Card>
         )}
+        </div>
       </div>
+      )}
+
+      {aba === "fds" && (
+        <EscalaFimDeSemana
+          ref={exportRef}
+          usuarios={usuarios}
+          escalas={escalas}
+          diasDoMes={diasDoMes}
+          mesAtivo={mesAtivo}
+        />
+      )}
     </div>
   );
 }

@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { cn } from "@/lib/utils";
+import { cn, escurecerHex } from "@/lib/utils";
 import { ColorPicker } from "@/components/ui/ColorPicker";
 
 type TemaBase = "claro" | "escuro" | "noturno";
@@ -15,6 +15,7 @@ interface PerfilDropdownProps {
   papel: string;
   fotoUrl: string | null;
   temaBase?: string | null;
+  corDestaque?: string | null;
   temaConfig?: TemaConfig | null;
 }
 
@@ -22,7 +23,7 @@ function iniciais(nome: string) {
   return nome.split(" ").filter(Boolean).slice(0,2).map(p => p[0].toUpperCase()).join("");
 }
 
-export function PerfilDropdown({ nomeCompleto, papel, fotoUrl, temaBase, temaConfig }: PerfilDropdownProps) {
+export function PerfilDropdown({ nomeCompleto, papel, fotoUrl, temaBase, corDestaque, temaConfig }: PerfilDropdownProps) {
   const [aberto, setAberto] = useState(false);
   const [aba, setAba] = useState<Aba>(null);
   const [carregando, setCarregando] = useState(false);
@@ -32,6 +33,7 @@ export function PerfilDropdown({ nomeCompleto, papel, fotoUrl, temaBase, temaCon
   const [senhaVis1, setSenhaVis1] = useState(false);
   const [senhaVis2, setSenhaVis2] = useState(false);
   const [config, setConfig] = useState<TemaConfig>(temaConfig ?? {});
+  const [accent, setAccent] = useState<string>(corDestaque ?? "");
   const [temaAtivo, setTemaAtivo] = useState<TemaBase>(
     (temaBase as TemaBase) ?? "claro"
   );
@@ -88,7 +90,13 @@ export function PerfilDropdown({ nomeCompleto, papel, fotoUrl, temaBase, temaCon
     if (config.secondaryColor) vars["--user-secondary"]   = config.secondaryColor;
     Object.entries(vars).forEach(([k, v]) => document.documentElement.style.setProperty(k, v));
 
-    const ok = await patch({ temaBase: temaAtivo, temaConfig: config });
+    // Cor principal (accent) — aplica também a variante escurecida do :hover.
+    if (accent) {
+      document.documentElement.style.setProperty("--accent-override", accent);
+      document.documentElement.style.setProperty("--accent-override-dark", escurecerHex(accent));
+    }
+
+    const ok = await patch({ temaBase: temaAtivo, temaConfig: config, corDestaque: accent });
     if (ok) { setMsg("Tema salvo!"); router.refresh(); }
   }
 
@@ -233,6 +241,7 @@ export function PerfilDropdown({ nomeCompleto, papel, fotoUrl, temaBase, temaCon
                     ))}
                   </div>
                   <div className="flex flex-col gap-3">
+                    <ColorPicker label="Cor principal" value={accent || "#22c55e"} onChange={setAccent} />
                     <ColorPicker label="Cor do texto" value={config.textColor ?? "#0f172a"} onChange={v => setConfig(c => ({...c, textColor: v}))} />
                     <ColorPicker label="Cor das bordas" value={config.borderColor ?? "#e2e8f0"} onChange={v => setConfig(c => ({...c, borderColor: v}))} />
                     <ColorPicker label="Item ativo" value={config.activeColor ?? "#2563eb"} onChange={v => setConfig(c => ({...c, activeColor: v}))} />
