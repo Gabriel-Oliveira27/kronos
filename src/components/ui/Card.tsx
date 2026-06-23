@@ -75,7 +75,6 @@ const TOM_POR_TIPO_ESCALA: Record<string, BadgeTone> = {
   PLANTAO: "blue",
   HOME_OFFICE: "green",
   FOLGA: "amber",
-  SABADO_REDUZIDO: "slate",
 };
 
 const TOM_POR_PAPEL: Record<string, BadgeTone> = {

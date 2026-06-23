@@ -8,7 +8,6 @@ const DIAS_MOCK = [
   { rotulo: "QUA", tipo: "HOME_OFFICE", cor: "bg-brand-green" },
   { rotulo: "QUI", tipo: "NORMAL", cor: "bg-slate-700", hoje: true },
   { rotulo: "SEX", tipo: "PLANTAO", cor: "bg-brand-blue" },
-  { rotulo: "SÁB", tipo: "SABADO_REDUZIDO", cor: "bg-slate-600" },
   { rotulo: "DOM", tipo: "FOLGA", cor: "bg-amber-500" },
 ];
 

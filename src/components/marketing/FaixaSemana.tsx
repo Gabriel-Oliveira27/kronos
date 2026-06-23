@@ -4,7 +4,6 @@ const DIAS = [
   { rotulo: "QUA", tipo: "HOME_OFFICE", hoje: false },
   { rotulo: "QUI", tipo: "NORMAL", hoje: true },
   { rotulo: "SEX", tipo: "PLANTAO", hoje: false },
-  { rotulo: "SÁB", tipo: "SABADO_REDUZIDO", hoje: false },
   { rotulo: "DOM", tipo: "FOLGA", hoje: false },
 ] as const;
 
@@ -13,7 +12,6 @@ const CORES: Record<string, string> = {
   PLANTAO: "bg-brand-blue text-white",
   HOME_OFFICE: "bg-brand-green text-white",
   FOLGA: "bg-amber-400 text-amber-950",
-  SABADO_REDUZIDO: "bg-slate-300 text-slate-700 dark:bg-slate-600 dark:text-slate-200",
 };
 
 export function FaixaSemana() {

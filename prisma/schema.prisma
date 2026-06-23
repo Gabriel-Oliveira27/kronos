@@ -1,15 +1,3 @@
-// Kronos — schema de dados
-//
-// Convenções Prisma 7 + Next.js 16 (Turbopack):
-// - O datasource NÃO leva `url`/`directUrl`: a conexão de runtime é resolvida
-//   via driver adapter (ver src/lib/prisma.ts) e a conexão usada pela CLI
-//   (migrate, studio) é resolvida via prisma.config.ts (DIRECT_URL).
-// - O generator usa `prisma-client-js` SEM `output` customizado de propósito:
-//   o provider novo `prisma-client` (com output fora de node_modules) tem um
-//   bug conhecido de resolução de módulo com o Turbopack do Next 16
-//   ("Cannot find module '.prisma/client/default'"). Gerar no local clássico
-//   (node_modules/@prisma/client) evita esse problema — ver README.
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -30,7 +18,7 @@ enum TipoDiaEscala {
   PLANTAO
   HOME_OFFICE
   FOLGA
-  SABADO_REDUZIDO
+  // SABADO_REDUZIDO removido — não faz parte das regras de negócio (ver migration)
 }
 
 enum Visibilidade {
@@ -39,24 +27,28 @@ enum Visibilidade {
 }
 
 model Usuario {
-  id           String   @id @default(cuid())
-  nomeCompleto String
-  setor        String
-  email        String?  @unique
-  username     String   @unique
-  senhaHash    String
-  papel        Papel    @default(USUARIO)
-  temApp       Boolean  @default(false)
-  fotoUrl      String?
-  temaBase     String?
-  corDestaque  String?
-  criadoEm     DateTime @default(now())
-  atualizadoEm DateTime @updatedAt
+  id              String   @id @default(cuid())
+  nomeCompleto    String
+  setor           String
+  email           String?  @unique
+  username        String   @unique
+  senhaHash       String
+  papel           Papel    @default(USUARIO)
+  ativo           Boolean  @default(true)
+  temApp          Boolean  @default(false)
+  fotoUrl         String?
+  temaBase        String?  // "claro" | "escuro" | "noturno" | "system"
+  corDestaque     String?
+  temaConfig      Json?    // { textColor, borderColor, activeColor, secondaryColor }
+  modeloHorarioId String?
+  criadoEm        DateTime @default(now())
+  atualizadoEm    DateTime @updatedAt
 
   escalas        EscalaDia[]
   conhecimentos  ConhecimentoItem[]
   registrosPonto RegistroPonto[]
   logs           LogEvento[]
+  modeloHorario  ModeloHorario?   @relation(fields: [modeloHorarioId], references: [id])
 
   @@map("usuarios")
 }
@@ -113,6 +105,7 @@ model RegistroPonto {
   tipoEvento   String
   horarioReal  String?
   confirmado   Boolean   @default(false)
+  origem       String    @default("app") // "app" | "web"
   deletadoEm   DateTime?
   atualizadoEm DateTime  @updatedAt
 
@@ -142,4 +135,20 @@ model LogEvento {
   @@index([tipo])
   @@index([criadoEm])
   @@map("logs_evento")
+}
+
+model ModeloHorario {
+  id            String   @id @default(cuid())
+  nome          String
+  descricao     String?
+  horasSemanais Float    @default(44)
+  jornadaDiaria Float    @default(8)
+  configuracao  Json?    // { diasUteis: { seg: 8, ter: 8, ... }, avisos: [{hora, mensagem}] }
+  criadoPorId   String
+  criadoEm      DateTime @default(now())
+  atualizadoEm  DateTime @updatedAt
+
+  usuarios      Usuario[]
+
+  @@map("modelos_horario")
 }

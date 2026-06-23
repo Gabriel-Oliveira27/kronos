@@ -8,7 +8,7 @@ import { randomBytes } from "node:crypto";
 
 const schema = z.object({
   nome: z.string().trim().min(2, "Informe o nome completo."),
-  setor: z.string().trim().min(1).default("Geral"),
+  setor: z.string().trim().min(1).default("Suporte"),
 });
 
 /**
