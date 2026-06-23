@@ -215,7 +215,7 @@ export function EscalasBoard({
   }
 
   return (
-    <div className="flex gap-4">
+    <div className="flex flex-col gap-4 lg:flex-row">
       {/* ── Coluna esquerda: lista da equipe ── */}
       <div className="hidden w-44 shrink-0 flex-col gap-2 lg:flex">
         <div className="rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900/60">
@@ -352,7 +352,7 @@ export function EscalasBoard({
       </div>
 
       {/* ── Coluna direita: painel de ações ── */}
-      <div className="w-72 shrink-0">
+      <div className="w-full lg:w-72 lg:shrink-0">
         {diaSelecionado ? (
           <Card className="p-4">
             <div className="mb-4">

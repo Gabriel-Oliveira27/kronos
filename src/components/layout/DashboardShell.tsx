@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useState, useEffect, type ReactNode } from "react";
+import { usePathname } from "next/navigation";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { PerfilDropdown } from "@/components/layout/PerfilDropdown";
@@ -19,6 +20,11 @@ export function DashboardShell({
   children: ReactNode;
 }) {
   const [menuAberto, setMenuAberto] = useState(false);
+  const pathname = usePathname();
+
+  // No App Router o layout persiste entre navegações, então o drawer mobile
+  // continuaria aberto ao trocar de página. Fecha sempre que a rota muda.
+  useEffect(() => { setMenuAberto(false); }, [pathname]);
 
   return (
     <div className="flex min-h-screen" style={{ backgroundColor: "var(--tema-bg-page)" }}>

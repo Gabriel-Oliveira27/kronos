@@ -271,10 +271,8 @@ function DiaCard({ dia, registros, tipo, jornadaDiaria, editandoId, editHorario,
             <div key={r.id} className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 dark:border-slate-800 dark:bg-slate-900/60">
               {editandoId === r.id ? (
                 <>
-                  <input type="time" value={editHorario} onChange={e => {/* managed by parent */}}
-                    onInput={e => { /* pass up */ }}
+                  <input type="time" value={editHorario}
                     className="h-7 w-24 rounded border border-slate-300 bg-white px-1 font-mono text-xs dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
-                    defaultValue={editHorario}
                     onChange={e => onEditar(r.id, e.target.value)}
                   />
                   <button onClick={() => onSalvarEdicao(r.id)} disabled={salvando}

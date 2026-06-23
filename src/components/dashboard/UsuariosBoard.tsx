@@ -8,7 +8,7 @@ import { ROTULOS_PAPEL, formatarData, cn } from "@/lib/utils";
 export interface UsuarioView {
   id: string; nomeCompleto: string; setor: string; email: string | null;
   username: string; papel: string; temApp: boolean; ativo: boolean;
-  fotoUrl: string | null; criadoEm: string;
+  fotoUrl: string | null; modeloHorarioId: string | null; criadoEm: string;
 }
 
 function Avatar({ usuario, size = 32 }: { usuario: UsuarioView; size?: number }) {
@@ -102,7 +102,7 @@ export function UsuariosBoard({ usuariosIniciais, podeEditar }: { usuariosInicia
             usuarioId={editando.id}
             valoresIniciais={{ nomeCompleto: editando.nomeCompleto, setor: editando.setor,
               username: editando.username, email: editando.email ?? "", papel: editando.papel as never,
-              temApp: editando.temApp }}
+              temApp: editando.temApp, modeloHorarioId: editando.modeloHorarioId ?? "" }}
             onSucesso={aoSalvar} onCancelar={() => setPainel("nenhum")} />
         </Card>
       )}

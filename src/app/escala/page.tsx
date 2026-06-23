@@ -183,7 +183,7 @@ export default function EscalaPublicaPage() {
         )}
 
         {!carregando && dados && (
-          <div className="flex gap-4">
+          <div className="flex flex-col gap-4 lg:flex-row">
             {/* Lista de membros */}
             <div className="hidden w-44 shrink-0 lg:block">
               <div className="rounded-xl border border-slate-800 bg-slate-900/60">
@@ -275,7 +275,7 @@ export default function EscalaPublicaPage() {
             </div>
 
             {/* Painel lateral do dia selecionado */}
-            <div className="w-72 shrink-0">
+            <div className="w-full lg:w-72 lg:shrink-0">
               {diaSelecionado ? (
                 <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
                   <p className="text-[10px] uppercase tracking-wider text-slate-500">Dia selecionado</p>

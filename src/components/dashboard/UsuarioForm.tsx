@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Field";
 import { Button } from "@/components/ui/Button";
@@ -14,7 +14,10 @@ export interface UsuarioFormValues {
   email: string;
   papel: Papel;
   temApp: boolean;
+  modeloHorarioId: string;
 }
+
+interface ModeloHorarioOpcao { id: string; nome: string }
 
 const VAZIO: UsuarioFormValues = {
   nomeCompleto: "",
@@ -23,6 +26,7 @@ const VAZIO: UsuarioFormValues = {
   email: "",
   papel: "USUARIO",
   temApp: false,
+  modeloHorarioId: "",
 };
 
 const PAPEIS: Papel[] = ["USUARIO", "CONFIGURADOR_ESCALA", "SUPORTE", "ADMIN"];
@@ -47,7 +51,21 @@ export function UsuarioForm({
   const [enviandoFoto, setEnviandoFoto] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+  const [modelos, setModelos] = useState<ModeloHorarioOpcao[]>([]);
   const inputFotoRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    let ativo = true;
+    fetch("/api/v1/modelos-horario")
+      .then((res) => (res.ok ? res.json() : []))
+      .then((dados) => {
+        if (ativo && Array.isArray(dados)) {
+          setModelos(dados.map((m: { id: string; nome: string }) => ({ id: m.id, nome: m.nome })));
+        }
+      })
+      .catch(() => {});
+    return () => { ativo = false; };
+  }, []);
 
   async function enviarFoto(file: File) {
     setEnviandoFoto(true);
@@ -79,6 +97,7 @@ export function UsuarioForm({
       email: valores.email,
       papel: valores.papel,
       temApp: valores.temApp,
+      modeloHorarioId: valores.modeloHorarioId,
       ...(fotoUrl ? { fotoUrl } : {}),
     };
 
@@ -158,6 +177,19 @@ export function UsuarioForm({
           ))}
         </Select>
       </div>
+
+      <Select
+        label="Modelo de horário"
+        value={valores.modeloHorarioId}
+        onChange={(e) => setValores({ ...valores, modeloHorarioId: e.target.value })}
+      >
+        <option value="">Nenhum</option>
+        {modelos.map((m) => (
+          <option key={m.id} value={m.id}>
+            {m.nome}
+          </option>
+        ))}
+      </Select>
 
       <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
         <input

@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { exigirUsuario } from "@/lib/rbac";
 import { registroPontoWebSchema } from "@/lib/validations";
@@ -11,7 +12,7 @@ export const GET = comTratamentoDeErro(async (request: NextRequest) => {
   const dataParam = searchParams.get("data");
   const mesParam  = searchParams.get("mes"); // yyyy-mm
 
-  let where: Record<string,unknown> = { usuarioId: usuario.id, deletadoEm: null };
+  let where: Prisma.RegistroPontoWhereInput = { usuarioId: usuario.id, deletadoEm: null };
 
   if (dataParam) {
     const d = new Date(dataParam + "T00:00:00.000Z");
@@ -27,7 +28,7 @@ export const GET = comTratamentoDeErro(async (request: NextRequest) => {
   }
 
   const registros = await prisma.registroPonto.findMany({
-    where: where as Parameters<typeof prisma.registroPonto.findMany>[0]["where"],
+    where,
     orderBy: [{ data: "asc" }, { horarioReal: "asc" }],
   });
   return NextResponse.json(registros);
