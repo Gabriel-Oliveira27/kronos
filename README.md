@@ -1,52 +1,71 @@
 # Kronos — Web App
 
-Ecossistema web do Kronos: gestão de usuários, escalas de trabalho (plantão / home office / folga / sábado reduzido) e base de conhecimento da equipe, além da API que o app mobile (Expo/React Native, fora deste repositório) consome para sincronizar o ponto.
+Central web do Kronos: **gestão de usuários, escalas de trabalho, controle de ponto e base de
+conhecimento** da equipe — além da **API** que o app mobile (Expo/React Native) consome para
+sincronizar o ponto. Inclui também uma **escala pública** (somente leitura, protegida por palavra
+secreta) e uma landing page.
 
-Construído a partir do briefing original, com a identidade visual (cores e logo) aplicada exatamente como especificado.
+> 📚 Documentação detalhada em [`docs/`](docs/):
+> - [`docs/endpoints.md`](docs/endpoints.md) — referência completa da API.
+> - [`docs/learn.md`](docs/learn.md) — guia de arquitetura/onboarding (pessoas **e** agentes de IA).
+> - [`docs/otimizar.md`](docs/otimizar.md) — backlog de otimizações e melhorias.
 
 ## Stack
 
-- **Next.js 16** (App Router, Turbopack) + React 19 + TypeScript, hospedado na Vercel
-- **Prisma 7** como ORM, com **Neon Postgres** serverless via `@prisma/adapter-neon`
-- **Autenticação própria**: bcrypt + JWT em cookie httpOnly (sem OAuth de terceiros)
-- **Tailwind CSS v4** (config via `@theme` em CSS, não `tailwind.config.js`)
-- **Zod v4** para validação de toda entrada de API
-- **googleapis** para upload de fotos ao Google Drive via Service Account
+- **Next.js 16** (App Router, Turbopack) + **React 19** + **TypeScript** — hospedado na Vercel.
+- **Prisma 7** + **Neon Postgres** (serverless) via `@prisma/adapter-neon` (driver adapter obrigatório).
+- **Autenticação própria**: `bcryptjs` (hash) + **JWT** (`jose`) em cookie httpOnly. Sem OAuth de terceiros.
+- **Tailwind CSS v4** — configurado via `@theme` em `src/app/globals.css` (não há `tailwind.config.js`).
+- **Zod v4** — validação de toda entrada de API.
+- **Cloudinary** — upload e hospedagem de fotos de perfil (URL pública direta).
+- **Exportação de escala**: `exceljs` (xlsx, no servidor) + `jspdf`/`jspdf-autotable` + `html-to-image` (PDF/PNG, no cliente, via import dinâmico).
 
-Essas são versões correntes no momento em que este repositório foi gerado — bem mais novas do que muita documentação/tutorial em volta ainda reflete (Next 16 trocou `middleware.ts` por `proxy.ts`; Prisma 7 exige driver adapter e não aceita mais `url` direto no `datasource`). Os detalhes que mudam comportamento estão comentados no próprio código onde importam.
+> ⚠️ Versões recentes mudam comportamento: o Next 16 trocou `middleware.ts` por **`src/proxy.ts`**;
+> o Prisma 7 **exige driver adapter** e não aceita mais `url` direto no `datasource`. Os pontos que
+> mudam comportamento estão comentados no próprio código.
+
+## Funcionalidades
+
+- **Autenticação e papéis** (`ADMIN`, `SUPORTE`, `CONFIGURADOR_ESCALA`, `USUARIO`) com RBAC checado
+  sempre contra o banco (mudança de papel tem efeito imediato). Usuário desativado é bloqueado em
+  login e API.
+- **Escalas da equipe** (configurador/admin): calendário mensal editável + **visão de fim de semana**
+  (estilo planilha: Plantão FDS / Sábado Expediente / Sábado de Folga) + **exportação** em Excel, PDF e PNG.
+- **Meu ponto**: registro de batidas e **cálculo de saldo** (semana de 44h = 8h × seg–sex + 4h sábado;
+  Sábado de Folga gera −4h; plantão e home office são abonados).
+- **Base de conhecimento**: itens públicos/privados (admin/suporte veem todos), grid de 3 colunas,
+  toggle cadeado→público.
+- **Modelos de horário** reutilizáveis, com avisos por dia da semana.
+- **Auditoria**: aba unificada de logs (alterações + acessos/erros) e registros excluídos.
+- **Temas** claro / escuro / noturno, com cores personalizáveis por usuário (principal, texto, bordas,
+  item ativo, secundária) e seletor visual de cor. Resolvido antes da pintura (sem flicker) e persistido.
+- **Escala pública** por palavra secreta e **landing page**.
+- **Kronos App**: download direto do APK (`public/kronos.apk`) e sincronização de ponto via API.
 
 ## Estrutura
 
 ```
 prisma/
-  schema.prisma       modelo de dados (igual ao briefing, + @@map para nomes de tabela em snake_case)
-  seed.ts              cria o primeiro usuário ADMIN
-prisma.config.ts        conexão usada pela CLI do Prisma (migrate/studio) — usa DIRECT_URL
+  schema.prisma          modelo de dados (tabelas em snake_case via @@map)
+  seed.ts                cria o primeiro usuário ADMIN (variáveis ADMIN_*)
+prisma.config.ts         conexão da CLI do Prisma (migrate/studio) — usa DIRECT_URL
 src/
-  proxy.ts               substituto do middleware.ts no Next 16 — só checa sessão e redireciona
-  lib/                    prisma client, auth (hash+JWT), sessão, RBAC, logs, validações zod, drive
+  proxy.ts               substituto do middleware no Next 16 — só checa sessão e redireciona
+  lib/                    prisma, auth (bcrypt+JWT), session, rbac, api (wrapper de erro),
+                          validations (zod), log, cloudinary, utils
   components/
-    ui/                   primitivos (Button, Input, Card, Badge, Logo...)
-    layout/                shell do dashboard (sidebar, topbar, tema, menu do usuário)
-    dashboard/              boards client-side (usuários, escalas, conhecimento, solicitações)
-    marketing/               landing page e formulários públicos
+    ui/                   primitivos (Button, Input, Field, Card/Badge, Logo, ColorPicker, ...)
+    layout/               shell do dashboard (Sidebar, Topbar, ThemeToggle, PerfilDropdown, overlays)
+    dashboard/            boards client-side (Usuários, Escalas, FimDeSemana, Ponto, Conhecimento,
+                          ModelosHorario, Auditoria, ...)
+    marketing/            landing (HeroMockup) e formulários públicos
   app/
-    page.tsx                landing
-    login/, solicitar-acesso/
-    dashboard/               layout protegido + páginas por funcionalidade
-    api/v1/                  todas as rotas de API
+    page.tsx              landing
+    login/, solicitar-acesso/, escala/   páginas públicas
+    dashboard/            layout protegido + páginas por funcionalidade
+    api/v1/               todas as rotas de API
+docs/                     endpoints.md · learn.md · otimizar.md
 ```
-
-## Como peguei algumas decisões do briefing
-
-O briefing pede "4 dashboards por papel". Implementei isso como **navegação em camadas** em vez de 4 áreas estanques: todo usuário autenticado (inclusive admin/suporte/configurador) começa com a base comum — própria escala, base de conhecimento, meu ponto — porque toda pessoa no sistema é, antes de tudo, um `Usuario` que também tem escala e pode ter notas de conhecimento. Os papéis elevados ganham seções extras na mesma sidebar (Usuários, Solicitações, Logs, Registros excluídos, Escalas da equipe) em vez de um dashboard isolado. ADMIN vê todas as seções extras, inclusive a do configurador de escala — tratei admin como superusuário, já que o briefing não diz o contrário e operacionalmente parecia um buraco deixar admin sem conseguir corrigir uma escala na ausência do configurador.
-
-Outras decisões registradas no código (procure pelos comentários):
-- **Fotos não ficam públicas no Drive.** Em vez do link direto do Google (que já quebrou várias vezes e nunca foi oficialmente suportado), o arquivo fica privado e é servido via proxy autenticado em `GET /api/v1/fotos/[fileId]` — mais alinhado ainda com "usuário final nunca interage com login do Google" do que um link público teria sido.
-- **Edição/exclusão de conhecimento é só do autor.** O briefing dá ao admin/suporte visibilidade de privados para auditoria, mas não fala de poder de edição — não estendi essa permissão.
-- **EscalaDia usa hard delete, não soft delete.** A regra de soft delete do briefing (seção 6) cita explicitamente "ponto ou conhecimento"; remover um dia de escala errado é operação rotineira do configurador, não uma exclusão sensível.
-- **Mudança de papel tem efeito imediato**, não só no próximo login: toda checagem de permissão em rota de API/Server Component busca o papel atual no banco, não confia no claim do JWT.
-- Há um `npm run db:seed` porque o briefing não define como o **primeiro** admin é criado (a tela de aprovação de solicitação já pressupõe um admin existente).
 
 ## Configuração inicial
 
@@ -54,71 +73,57 @@ Outras decisões registradas no código (procure pelos comentários):
 npm install
 ```
 
-Copie `.env.example` para `.env` e preencha (instruções de cada variável estão comentadas no próprio arquivo):
+Crie um `.env` na raiz com:
 
-```bash
-cp .env.example .env
-```
-
-Você vai precisar, no mínimo:
-1. Um projeto Neon (free tier) — copie as duas connection strings (com e sem `-pooler`) para `DATABASE_URL` e `DIRECT_URL`.
-2. Um `JWT_SECRET` aleatório (`openssl rand -base64 32`).
-3. Uma Service Account do Google com a Drive API ativada, se for usar upload de foto (o resto do app funciona sem isso).
+| Variável | Para quê |
+|---|---|
+| `DATABASE_URL` | Neon **com** pooling (host `-pooler`) — usado em runtime serverless |
+| `DIRECT_URL` | Neon **sem** pooling — usado pela CLI do Prisma (migrate/studio) |
+| `JWT_SECRET` | string aleatória longa (`openssl rand -base64 32`) |
+| `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | upload de fotos (opcional; o resto funciona sem) |
+| `PALAVRA_SECRETA_ESCALA` | palavra que libera a escala pública (`/escala`) |
+| `ADMIN_USERNAME`, `ADMIN_PASSWORD`, `ADMIN_NOME`, `ADMIN_SETOR` | usados pelo `db:seed` para criar o 1º admin |
 
 Depois:
 
 ```bash
 npm run db:migrate    # cria as tabelas no Neon a partir do schema.prisma
-npm run db:seed       # cria o primeiro usuário ADMIN (usuário/senha no console)
-npm run dev
+npm run db:seed       # cria o primeiro usuário ADMIN
+npm run dev           # http://localhost:3000
 ```
 
-O `npm run build` (e o `postinstall`) já rodam `prisma generate` automaticamente.
+`npm run build` e o `postinstall` já rodam `prisma generate` automaticamente.
+
+> ⚠️ **Não** rode `npm run build` com o `npm run dev` ativo: o build de produção sobrescreve o `.next`
+> do dev e causa **404 em todas as telas**. Se acontecer: pare o dev, `rm -rf .next` e suba o dev de novo.
+
+## Scripts
+
+| Script | O que faz |
+|---|---|
+| `npm run dev` | servidor de desenvolvimento (Turbopack) |
+| `npm run build` / `npm start` | build de produção / servir |
+| `npm run db:migrate` | `prisma migrate dev` |
+| `npm run db:deploy` | `prisma migrate deploy` (produção) |
+| `npm run db:seed` | cria o primeiro admin |
+| `npm run db:studio` | Prisma Studio |
 
 ## Deploy na Vercel
 
 1. Importe o repositório na Vercel.
-2. Configure as mesmas variáveis de ambiente do `.env` (Settings → Environment Variables) — `DATABASE_URL`, `DIRECT_URL`, `JWT_SECRET`, e as três do Google se for usar upload de foto.
-3. Build command e install command podem ficar nos defaults (`npm run build` já inclui `prisma generate`).
-4. Depois do primeiro deploy, rode `npm run db:migrate` e `npm run db:seed` localmente (apontando para o `.env` com as credenciais de produção) — a Vercel não roda migrations automaticamente.
+2. Configure as mesmas variáveis do `.env` (Settings → Environment Variables).
+3. Build e install ficam nos defaults (`npm run build` já inclui `prisma generate`).
+4. Após o 1º deploy, rode `npm run db:deploy` apontando para o banco de produção (a Vercel não roda migrations sozinha).
 
-## Endpoints da API (para o app mobile / integrações futuras)
+## Decisões e regras de negócio (resumo)
 
-Todas sob `/api/v1`. Exceto login/logout/solicitação de acesso, todas exigem o cookie de sessão.
+- **Papéis em camadas**, não 4 dashboards estanques: todo usuário tem a base (própria escala, ponto,
+  conhecimento) e papéis elevados ganham seções extras na mesma sidebar. ADMIN é superusuário.
+- **Fuso horário**: datas são salvas/consultadas em **UTC explícito** (strings ISO `...T00:00:00.000Z`)
+  para não pular registros gravados em meia-noite UTC. Veja os comentários `FIX TIMEZONE`.
+- **EscalaDia** = um tipo por usuário/dia (`NORMAL | PLANTAO | HOME_OFFICE | FOLGA`), hard delete.
+- **Sábado**: vale 4h; Folga no sábado não pode ser escalada como presencial (bloqueio na UI e na API).
+- **Conhecimento**: edição/exclusão só do autor; admin/suporte **veem** privados de todos (auditoria).
+- **Sync de ponto**: incremental por `atualizadoEm` (cursor); o `usuarioId` é sempre o do dono.
 
-| Rota | Método | Observação |
-|---|---|---|
-| `/auth/login`, `/auth/logout` | POST | público / autenticado |
-| `/solicitacoes-acesso` | POST | público |
-| `/admin/solicitacoes-acesso` | GET | admin |
-| `/admin/solicitacoes-acesso/[id]` | PATCH | admin — `{ status: "rejeitada" }` |
-| `/admin/usuarios` | GET, POST | GET: admin+suporte · POST: admin |
-| `/admin/usuarios/[id]` | PUT | admin |
-| `/usuarios/me` | GET, PATCH | próprio usuário — tema, cor, foto, senha |
-| `/escalas` | GET, POST | GET: usuário só lê a própria · POST: configurador/admin |
-| `/escalas/[id]` | PUT, DELETE | configurador/admin |
-| `/conhecimento` | GET, POST | GET respeita regra de visibilidade · POST: autenticado |
-| `/conhecimento/[id]` | PUT, DELETE | só o autor |
-| `/sync/registros-ponto` | GET, POST | incremental por `atualizadoEm` (cursor) — usado pelo app mobile |
-| `/sync/registros-ponto/[id]` | DELETE | soft delete (com auditoria) |
-| `/fotos/upload` | POST | autenticado — `multipart/form-data`, campo `arquivo` |
-| `/fotos/[fileId]` | GET | autenticado — proxy do conteúdo do Drive |
-| `/admin/logs` | GET | admin+suporte |
-| `/admin/registros-excluidos` | GET | admin |
-
-## O que validei antes de entregar
-
-Não tive acesso a um Neon real nem à internet liberada para baixar o engine de schema do Prisma neste ambiente de geração — então validei o equivalente:
-- Aplicação manual do DDL (traduzido 1:1 do `schema.prisma`) num Postgres real, incluindo enums, índices e `String[]`/`Json`.
-- As regras de negócio mais delicadas (visibilidade de conhecimento, soft delete + auditoria em transação, sync incremental por timestamp) testadas com dados reais nesse mesmo banco.
-- Hash de senha (bcrypt) e assinatura/verificação de JWT (jose) executados de ponta a ponta, incluindo rejeição de assinatura inválida.
-- Build completo do Next (`next build`) e smoke test em runtime (`next start` + requisições reais) usando um client do Prisma "dublê" só para conseguir compilar sem o engine — isso pegou e corrigiu dois bugs reais (um de tipos no wrapper de erro das rotas, outro de tipos estritos num componente) e uma chave de config do Turbopack que tinha mudado de lugar entre versões do Next.
-
-O que isso **não** cobre: uma migration de verdade contra o Neon e o fluxo de upload pro Google Drive (ambos exigem credenciais que só vocês têm). Vale rodar `npm run db:migrate` e testar o upload de foto com atenção no primeiro uso.
-
-## Limitações conhecidas / próximos passos sugeridos
-
-- Sem rate limiting no login (o briefing não pediu, mas é uma adição barata e recomendável antes de produção real).
-- Sem paginação nas listagens (usuários, logs, conhecimento) — não é problema com poucas dezenas/centenas de registros, mas vale revisar se a equipe crescer bastante.
-- Sem página de "meu perfil" para o próprio usuário trocar senha/foto/cor de destaque pela UI — a rota de API (`PATCH /usuarios/me`) já existe e suporta isso, falta só a tela.
-- Lint (ESLint) não foi configurado neste repositório.
+Detalhes acionáveis (segurança, performance, dependências) estão em [`docs/otimizar.md`](docs/otimizar.md).
