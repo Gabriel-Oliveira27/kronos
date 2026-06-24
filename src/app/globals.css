@@ -125,6 +125,13 @@ body {
 }
 .animate-overlay { animation: overlay-abrir 0.15s ease-out; }
 
+/* Drawer lateral (menu mobile) deslizando da esquerda */
+@keyframes drawer-entra {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(0); }
+}
+.animate-drawer { animation: drawer-entra 0.25s cubic-bezier(0.22, 1, 0.36, 1); }
+
 @keyframes modal-abrir {
   from { opacity: 0; transform: translateY(8px) scale(0.97); }
   to   { opacity: 1; transform: translateY(0) scale(1); }

@@ -23,6 +23,13 @@ export const POST = comTratamentoDeErro(async (request: NextRequest) => {
     throw new ApiError(401, "Usuário ou senha inválidos.", "CREDENCIAIS_INVALIDAS");
   }
 
+  // Conta desativada não loga (checado só após a senha, para não revelar
+  // quais usuários existem/estão inativos a quem não tem as credenciais).
+  if (!usuario.ativo) {
+    await registrarEvento({ tipo: "ACESSO_NEGADO", usuarioId: usuario.id, detalhe: { motivo: "conta_desativada" } });
+    throw new ApiError(403, "Sua conta está desativada. Procure um administrador.", "CONTA_DESATIVADA");
+  }
+
   const token = await assinarSessao({
     sub: usuario.id,
     username: usuario.username,

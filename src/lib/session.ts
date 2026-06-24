@@ -50,6 +50,9 @@ export async function usuarioAtual(): Promise<UsuarioSemSenha | null> {
 
   const usuario = await prisma.usuario.findUnique({ where: { id: claims.sub } });
   if (!usuario) return null;
+  // Usuário desativado é tratado como não autenticado em TODA a aplicação
+  // (API e páginas) — a desativação tem efeito imediato, mesmo com token válido.
+  if (!usuario.ativo) return null;
 
   const { senhaHash, ...resto } = usuario;
   return resto;

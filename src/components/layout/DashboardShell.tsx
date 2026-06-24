@@ -39,8 +39,8 @@ export function DashboardShell({
       {/* Sidebar mobile */}
       {menuAberto && (
         <div className="fixed inset-0 z-30 lg:hidden">
-          <div className="absolute inset-0 bg-slate-900/50" onClick={() => setMenuAberto(false)} />
-          <div className="absolute inset-y-0 left-0 w-64 shadow-xl" style={{ backgroundColor: "var(--tema-bg-surface)" }}>
+          <div className="animate-overlay absolute inset-0 bg-slate-900/50" onClick={() => setMenuAberto(false)} />
+          <div className="animate-drawer absolute inset-y-0 left-0 w-64 shadow-xl" style={{ backgroundColor: "var(--tema-bg-surface)" }}>
             <Sidebar papel={papel} />
           </div>
         </div>
