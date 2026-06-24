@@ -39,9 +39,13 @@ export const POST = comTratamentoDeErro(async (request: NextRequest) => {
   await definirCookieSessao(token);
   await registrarEvento({ tipo: "LOGIN_SUCESSO", usuarioId: usuario.id });
 
+  // O `token` também vai no corpo para o app mobile (Expo/React Native), que
+  // autentica por `Authorization: Bearer <token>` em vez de cookie. A web
+  // ignora o campo e continua usando o cookie httpOnly definido acima.
   return NextResponse.json({
     id: usuario.id,
     nomeCompleto: usuario.nomeCompleto,
     papel: usuario.papel,
+    token,
   });
 });

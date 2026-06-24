@@ -95,12 +95,11 @@ Legenda de prioridade: 🔴 alta · 🟡 média · 🟢 baixa · ✅ já feito.
 
 ## Preparação para conectar o app mobile
 
-### 🔴 Auth por token para o app (RN/Expo)
-- **Arquivos:** `src/app/api/v1/auth/login/route.ts`, `src/lib/auth.ts`, `src/lib/session.ts`.
-- **Problema:** hoje o JWT só sai como **cookie httpOnly**; o login não devolve o token no corpo.
-  Um app mobile precisa de um token para mandar em `Authorization: Bearer` nas chamadas.
-- **Fix:** devolver o JWT no corpo do login (ou criar `/api/v1/auth/login` com modo mobile) e aceitar
-  `Authorization: Bearer <jwt>` além do cookie em `obterClaimsSessao()`.
+### ✅ Auth por token para o app (RN/Expo) (feito)
+- **Arquivos:** `src/app/api/v1/auth/login/route.ts`, `src/lib/session.ts`.
+- O login agora devolve o `token` no corpo (além do cookie) e `obterClaimsSessao()`
+  aceita `Authorization: Bearer <jwt>` como fallback ao cookie. A web segue por cookie;
+  o app mobile autentica por header. Sem mudança em `proxy.ts` (cookie só para web).
 
 ### ✅ Endpoint de sync já pronto
 - `src/app/api/v1/sync/registros-ponto/route.ts`: upsert em lote, força `usuarioId` do dono, ignora

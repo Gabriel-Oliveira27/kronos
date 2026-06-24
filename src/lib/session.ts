@@ -1,5 +1,5 @@
 import "server-only";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { verificarSessao, type SessionClaims } from "@/lib/auth";
 import type { Usuario } from "@prisma/client";
@@ -27,12 +27,22 @@ export async function limparCookieSessao() {
 }
 
 /**
- * Lê e valida o token de sessão do cookie. Rápido, sem ida ao banco — usado
- * pelo proxy.ts para roteamento grosso (logado? papel plausível?).
+ * Lê e valida o token de sessão. A web manda o JWT no cookie httpOnly; o app
+ * mobile (Expo/React Native) manda em `Authorization: Bearer <token>`. Tentamos
+ * o cookie primeiro e, se ausente, o header — assim a mesma checagem de sessão
+ * serve aos dois clientes sem duplicar lógica. Rápido, sem ida ao banco.
  */
 export async function obterClaimsSessao(): Promise<SessionClaims | null> {
   const store = await cookies();
-  return verificarSessao(store.get(COOKIE_NAME)?.value);
+  const tokenDoCookie = store.get(COOKIE_NAME)?.value;
+  if (tokenDoCookie) return verificarSessao(tokenDoCookie);
+
+  const cabecalhos = await headers();
+  const autorizacao = cabecalhos.get("authorization");
+  const tokenDoHeader = autorizacao?.toLowerCase().startsWith("bearer ")
+    ? autorizacao.slice(7).trim()
+    : undefined;
+  return verificarSessao(tokenDoHeader);
 }
 
 export type UsuarioSemSenha = Omit<Usuario, "senhaHash">;
