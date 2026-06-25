@@ -105,6 +105,34 @@ export const conhecimentoItemSchema = z.object({
 
 export const conhecimentoItemAtualizarSchema = conhecimentoItemSchema.partial();
 
+// ── Dev Area: configuração global do app (textos de notificação + aleatórias) ──
+const textosPorEvento = z.object({
+  entrada: z.string().max(200).default(""),
+  saida_almoco: z.string().max(200).default(""),
+  retorno_almoco: z.string().max(200).default(""),
+  saida_final: z.string().max(200).default(""),
+});
+
+export const configAppSchema = z.object({
+  notificacoes: z.object({
+    titulo: z.string().max(120).default(""),
+    lead: textosPorEvento,
+    confirm: textosPorEvento,
+    botoes: z.object({
+      confirm: z.string().max(60).default(""),
+      notYet: z.string().max(60).default(""),
+      snooze: z.string().max(60).default(""),
+    }),
+  }),
+  aleatorias: z.object({
+    ativo: z.boolean().default(false),
+    quantidadePorDia: z.number().int().min(0).max(10).default(0),
+    horaInicio: z.number().int().min(0).max(23).default(8),
+    horaFim: z.number().int().min(0).max(23).default(18),
+    mensagens: z.array(z.string().trim().min(1).max(200)).max(50).default([]),
+  }),
+});
+
 export const registroPontoWebSchema = z.object({
   data: z.coerce.date({ error: "Data inválida." }),
   tipoEvento: z.string().min(1, "Informe o tipo de evento."),

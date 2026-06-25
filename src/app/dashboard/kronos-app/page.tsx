@@ -56,7 +56,7 @@ export default async function KronosAppPage() {
               Baixar APK (Android)
             </a>
             <p className="text-xs text-slate-400 dark:text-slate-500">
-              Em alguns aparelhos é necessário permitir a instalação de fontes desconhecidas.
+              Distribuição direta (fora da Play Store). Veja como instalar ao lado.
             </p>
           </div>
         </Card>
@@ -76,6 +76,27 @@ export default async function KronosAppPage() {
           ))}
         </Card>
       </div>
+
+      {/* Orientações de instalação (APK fora da Play Store) */}
+      <Card className="flex flex-col gap-3">
+        <p className="font-semibold text-slate-900 dark:text-white">Como instalar no Android</p>
+        {[
+          { n:"1", t:"Baixe o APK tocando em “Baixar APK (Android)”." },
+          { n:"2", t:"Ao abrir o arquivo, o Android pode pedir para permitir a instalação de “fontes desconhecidas” ou “apps externos” — ative essa permissão para o navegador ou gerenciador de arquivos." },
+          { n:"3", t:"O Play Protect pode exibir um aviso (“app não reconhecido”). Toque em “Mais detalhes” e depois em “Instalar assim mesmo”." },
+          { n:"4", t:"Conclua a instalação e abra o Kronos normalmente." },
+        ].map(({ n, t }) => (
+          <div key={n} className="flex items-start gap-3">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-green/10 text-xs font-semibold text-brand-green-dark dark:text-brand-green">{n}</span>
+            <p className="text-sm text-slate-600 dark:text-slate-300">{t}</p>
+          </div>
+        ))}
+        <p className="mt-1 rounded-lg bg-slate-50 p-3 text-xs text-slate-500 dark:bg-slate-800/60 dark:text-slate-400">
+          Esses avisos são normais em aplicativos distribuídos fora da Google Play e não indicam
+          problema. Você precisa fazer isso apenas na primeira instalação; as atualizações seguintes
+          são mais simples.
+        </p>
+      </Card>
     </div>
   );
 }

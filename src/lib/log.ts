@@ -20,7 +20,11 @@ export type TipoLog =
   | "ESCALA_ALTERADA"
   | "CONHECIMENTO_EXCLUIDO"
   | "PONTO_EXCLUIDO"
-  | "UPLOAD_FOTO_FALHA";
+  | "UPLOAD_FOTO_FALHA"
+  | "CONFIG_APP_ALTERADA"
+  | "LOGIN_BLOQUEADO"
+  | "ESCALA_PUBLICA_FALHA"
+  | "ESCALA_PUBLICA_BLOQUEADA";
 
 interface RegistrarEventoInput {
   tipo: TipoLog;
