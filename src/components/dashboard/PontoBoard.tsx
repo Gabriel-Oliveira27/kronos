@@ -167,6 +167,7 @@ export function PontoBoard({ registrosIniciais, escalaDoMes, mesInicial, jornada
   }
 
   const hoje = new Date().toISOString().slice(0,10);
+  const ehMesAtual = mes === mesAtual();
   const diasComRegistro = diasDoMes.filter(d => mapaDias.has(d)).sort().reverse();
 
   return (
@@ -184,9 +185,15 @@ export function PontoBoard({ registrosIniciais, escalaDoMes, mesInicial, jornada
           </Card>
         ))}
         <Card className="flex items-center justify-center">
-          <Button variant="outline" size="sm" onClick={() => setVerMes(v => !v)}>
-            {verMes ? "Ocultar histórico" : "Ver histórico do mês"}
-          </Button>
+          {ehMesAtual ? (
+            <Button variant="outline" size="sm" onClick={() => setVerMes(v => !v)}>
+              {verMes ? "Ocultar histórico" : "Ver histórico do mês"}
+            </Button>
+          ) : (
+            <p className="text-xs text-slate-500 dark:text-slate-400 text-center">
+              {diasComRegistro.length} dia(s) com registro
+            </p>
+          )}
         </Card>
       </div>
 
@@ -221,21 +228,23 @@ export function PontoBoard({ registrosIniciais, escalaDoMes, mesInicial, jornada
         )}
       </Card>
 
-      {/* Dia de hoje */}
-      <DiaCard
-        dia={hoje} registros={mapaDias.get(hoje) ?? []} tipo={escalaMap.get(hoje)}
-        jornadaDiaria={jornadaDiaria} editandoId={editandoId} editHorario={editHorario}
-        onEditar={(id,h) => { setEditandoId(id); setEditHorario(h); }}
-        onSalvarEdicao={id => salvarEdicao(id, hoje)}
-        onCancelarEdicao={() => setEditandoId(null)}
-        onExcluir={excluir} salvando={salvando} label="Hoje" destaque
-      />
+      {/* Dia de hoje — só quando o mês exibido é o atual */}
+      {ehMesAtual && (
+        <DiaCard
+          dia={hoje} registros={mapaDias.get(hoje) ?? []} tipo={escalaMap.get(hoje)}
+          jornadaDiaria={jornadaDiaria} editandoId={editandoId} editHorario={editHorario}
+          onEditar={(id,h) => { setEditandoId(id); setEditHorario(h); }}
+          onSalvarEdicao={id => salvarEdicao(id, hoje)}
+          onCancelarEdicao={() => setEditandoId(null)}
+          onExcluir={excluir} salvando={salvando} label="Hoje" destaque
+        />
+      )}
 
-      {/* Histórico do mês */}
-      {verMes && (
+      {/* Histórico do mês: aberto por toggle no mês atual; sempre visível em meses passados. */}
+      {(verMes || !ehMesAtual) && (
         <div className="flex flex-col gap-3">
-          <p className="font-semibold text-slate-700 dark:text-slate-200">Histórico — {mes}</p>
-          {diasComRegistro.filter(d => d !== hoje).map(dia => (
+          <p className="font-semibold text-slate-700 dark:text-slate-200">Histórico do mês</p>
+          {diasComRegistro.filter(d => ehMesAtual ? d !== hoje : true).map(dia => (
             <DiaCard key={dia} dia={dia} registros={mapaDias.get(dia) ?? []} tipo={escalaMap.get(dia)}
               jornadaDiaria={jornadaDiaria} editandoId={editandoId} editHorario={editHorario}
               onEditar={(id,h) => { setEditandoId(id); setEditHorario(h); }}
