@@ -1,10 +1,29 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { timingSafeEqual } from "crypto";
 import { prisma } from "@/lib/prisma";
+import { registrarEvento } from "@/lib/log";
+import { contarEventos, obterIp } from "@/lib/ratelimit";
+
+// Rate limit: até 15 tentativas erradas por IP a cada 15 minutos.
+const JANELA_MS = 15 * 60 * 1000;
+const MAX_FALHAS = 15;
+
+/** Comparação em tempo constante (evita vazar a palavra secreta por timing). */
+function comparaSegura(a: string, b: string): boolean {
+  const ba = Buffer.from(a);
+  const bb = Buffer.from(b);
+  if (ba.length !== bb.length) {
+    timingSafeEqual(ba, ba); // gasta tempo equivalente; não vaza o tamanho
+    return false;
+  }
+  return timingSafeEqual(ba, bb);
+}
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const palavraSecreta = searchParams.get("ps") ?? "";
   const mes = searchParams.get("mes") ?? "";
+  const ip = obterIp(request);
 
   const palavraCorreta = process.env.PALAVRA_SECRETA_ESCALA ?? "";
 
@@ -15,7 +34,14 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  if (palavraSecreta.length !== palavraCorreta.length || palavraSecreta !== palavraCorreta) {
+  // Trava de brute-force da palavra secreta por IP.
+  if ((await contarEventos("ESCALA_PUBLICA_FALHA", "ip", ip, JANELA_MS)) >= MAX_FALHAS) {
+    await registrarEvento({ tipo: "ESCALA_PUBLICA_BLOQUEADA", detalhe: { ip } });
+    return NextResponse.json({ error: "Muitas tentativas. Tente novamente mais tarde.", code: "MUITAS_TENTATIVAS" }, { status: 429 });
+  }
+
+  if (!comparaSegura(palavraSecreta, palavraCorreta)) {
+    await registrarEvento({ tipo: "ESCALA_PUBLICA_FALHA", detalhe: { ip } });
     return NextResponse.json({ error: "Palavra secreta incorreta.", code: "PALAVRA_INCORRETA" }, { status: 401 });
   }
 

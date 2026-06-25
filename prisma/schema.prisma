@@ -137,6 +137,18 @@ model LogEvento {
   @@map("logs_evento")
 }
 
+// Configuração global do app mobile (singleton, id = "global"). Gerenciada pela
+// Dev Area (somente ADMIN). Guarda textos das notificações e o pool/parâmetros
+// das notificações aleatórias — vale para todos os dispositivos.
+model ConfiguracaoApp {
+  id              String   @id @default("global")
+  config          Json
+  atualizadoPorId String?
+  atualizadoEm    DateTime @updatedAt
+
+  @@map("configuracao_app")
+}
+
 model ModeloHorario {
   id            String   @id @default(cuid())
   nome          String

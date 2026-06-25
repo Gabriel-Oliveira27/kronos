@@ -7,7 +7,14 @@ import { comTratamentoDeErro, ApiError } from "@/lib/api";
 
 export const GET = comTratamentoDeErro(async () => {
   const usuario = await exigirUsuario();
-  return NextResponse.json(usuario);
+  // Inclui o nome do modelo de horário atribuído (para a tela de perfil do app).
+  const modeloHorario = usuario.modeloHorarioId
+    ? await prisma.modeloHorario.findUnique({
+        where: { id: usuario.modeloHorarioId },
+        select: { nome: true },
+      })
+    : null;
+  return NextResponse.json({ ...usuario, modeloHorario });
 });
 
 export const PATCH = comTratamentoDeErro(async (request: NextRequest) => {

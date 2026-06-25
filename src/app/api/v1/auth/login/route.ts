@@ -5,21 +5,35 @@ import { verificarSenha, assinarSessao } from "@/lib/auth";
 import { definirCookieSessao } from "@/lib/session";
 import { registrarEvento } from "@/lib/log";
 import { comTratamentoDeErro, ApiError } from "@/lib/api";
+import { contarEventos, obterIp } from "@/lib/ratelimit";
+
+// Rate limit: até 10 falhas de login por IP a cada 10 minutos.
+const JANELA_LOGIN_MS = 10 * 60 * 1000;
+const MAX_FALHAS_LOGIN = 10;
 
 export const POST = comTratamentoDeErro(async (request: NextRequest) => {
+  const ip = obterIp(request);
+
+  // Trava de brute-force por IP (conta falhas recentes no LogEvento).
+  const falhasRecentes = await contarEventos("LOGIN_FALHA", "ip", ip, JANELA_LOGIN_MS);
+  if (falhasRecentes >= MAX_FALHAS_LOGIN) {
+    await registrarEvento({ tipo: "LOGIN_BLOQUEADO", detalhe: { ip } });
+    throw new ApiError(429, "Muitas tentativas de login. Tente novamente em alguns minutos.", "MUITAS_TENTATIVAS");
+  }
+
   const corpo = await request.json();
   const { username, senha } = loginSchema.parse(corpo);
 
   const usuario = await prisma.usuario.findUnique({ where: { username } });
 
   if (!usuario) {
-    await registrarEvento({ tipo: "LOGIN_FALHA", detalhe: { username } });
+    await registrarEvento({ tipo: "LOGIN_FALHA", detalhe: { username, ip } });
     throw new ApiError(401, "Usuário ou senha inválidos.", "CREDENCIAIS_INVALIDAS");
   }
 
   const senhaValida = await verificarSenha(senha, usuario.senhaHash);
   if (!senhaValida) {
-    await registrarEvento({ tipo: "LOGIN_FALHA", usuarioId: usuario.id, detalhe: { username } });
+    await registrarEvento({ tipo: "LOGIN_FALHA", usuarioId: usuario.id, detalhe: { username, ip } });
     throw new ApiError(401, "Usuário ou senha inválidos.", "CREDENCIAIS_INVALIDAS");
   }
 

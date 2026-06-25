@@ -4,14 +4,29 @@ import { enviarFotoCloudinary, UploadFotoError } from "@/lib/cloudinary";
 import { comTratamentoDeErro, ApiError } from "@/lib/api";
 import { registrarEvento } from "@/lib/log";
 
+// Limite com folga sobre os 5 MB úteis — barra uploads gigantes antes de
+// carregar tudo na memória (proteção contra DoS por memória).
+const LIMITE_UPLOAD_BYTES = 6 * 1024 * 1024;
+
 export const POST = comTratamentoDeErro(async (request: NextRequest) => {
   const usuario = await exigirUsuario();
+
+  // Rejeita cedo, pelo Content-Length, antes de bufferizar o corpo.
+  const contentLength = Number(request.headers.get("content-length") ?? 0);
+  if (contentLength > LIMITE_UPLOAD_BYTES) {
+    throw new ApiError(413, "Imagem muito grande. O limite é 5 MB.", "ARQUIVO_GRANDE");
+  }
 
   const formData = await request.formData();
   const arquivo = formData.get("arquivo");
 
   if (!(arquivo instanceof File)) {
     throw new ApiError(400, "Envie o arquivo no campo 'arquivo'.", "ARQUIVO_AUSENTE");
+  }
+
+  // Segunda checagem pelo tamanho real do arquivo (caso o Content-Length minta).
+  if (arquivo.size > LIMITE_UPLOAD_BYTES) {
+    throw new ApiError(413, "Imagem muito grande. O limite é 5 MB.", "ARQUIVO_GRANDE");
   }
 
   const buffer = Buffer.from(await arquivo.arrayBuffer());
