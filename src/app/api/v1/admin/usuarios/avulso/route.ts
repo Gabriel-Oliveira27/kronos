@@ -53,6 +53,7 @@ export const POST = comTratamentoDeErro(async (request: NextRequest) => {
     data: {
       nomeCompleto: nome,
       setor,
+      setores: [setor],
       username,
       senhaHash,
       papel: "USUARIO",

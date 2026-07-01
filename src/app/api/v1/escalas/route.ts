@@ -54,6 +54,15 @@ export const POST = comTratamentoDeErro(async (request: NextRequest) => {
   const usuarioDestino = await prisma.usuario.findUnique({ where: { id: dados.usuarioId } });
   if (!usuarioDestino) throw ApiError.naoEncontrado("Colaborador não encontrado.");
 
+  // Recorte por setor: configurador só altera quem compartilha setor com ele.
+  if (usuario.papel !== "ADMIN") {
+    const meusSetores = usuario.setores.length > 0 ? usuario.setores : [usuario.setor];
+    const setoresAlvo = usuarioDestino.setores.length > 0 ? usuarioDestino.setores : [usuarioDestino.setor];
+    if (!setoresAlvo.some((s) => meusSetores.includes(s))) {
+      throw ApiError.semPermissao("Você só pode alterar a escala de colaboradores do seu setor.");
+    }
+  }
+
   // Um dia = um tipo de escala. Se já existir um registro para esse usuário
   // nesse dia, atualizamos em vez de duplicar.
   const existente = await prisma.escalaDia.findFirst({
@@ -80,13 +89,14 @@ export const POST = comTratamentoDeErro(async (request: NextRequest) => {
   const escala = existente
     ? await prisma.escalaDia.update({
         where: { id: existente.id },
-        data: { tipo: dados.tipo, observacao: dados.observacao || null },
+        data: { tipo: dados.tipo, etiquetaId: dados.etiquetaId ?? null, observacao: dados.observacao || null },
       })
     : await prisma.escalaDia.create({
         data: {
           usuarioId: dados.usuarioId,
           data: dados.data,
           tipo: dados.tipo,
+          etiquetaId: dados.etiquetaId ?? null,
           observacao: dados.observacao || null,
           criadoPorId: usuario.id,
         },

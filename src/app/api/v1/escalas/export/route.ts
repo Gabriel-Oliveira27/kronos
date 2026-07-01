@@ -20,7 +20,12 @@ function maisUmDia(iso: string): string {
 }
 
 export const GET = comTratamentoDeErro(async (request: NextRequest) => {
-  await exigirPapel("CONFIGURADOR_ESCALA", "ADMIN");
+  const usuario = await exigirPapel("CONFIGURADOR_ESCALA", "ADMIN");
+  const meusSetores = usuario.setores.length > 0 ? usuario.setores : [usuario.setor];
+  const filtroSetor =
+    usuario.papel === "ADMIN"
+      ? {}
+      : { OR: [{ setor: { in: meusSetores } }, { setores: { hasSome: meusSetores } }] };
 
   const mesParam = new URL(request.url).searchParams.get("mes");
   const hoje = new Date();
@@ -38,9 +43,9 @@ export const GET = comTratamentoDeErro(async (request: NextRequest) => {
   fim.setUTCDate(fim.getUTCDate() + 2);
 
   const [usuarios, escalas] = await Promise.all([
-    prisma.usuario.findMany({ orderBy: { nomeCompleto: "asc" }, select: { id: true, nomeCompleto: true } }),
+    prisma.usuario.findMany({ where: filtroSetor, orderBy: { nomeCompleto: "asc" }, select: { id: true, nomeCompleto: true } }),
     prisma.escalaDia.findMany({
-      where: { data: { gte: inicio, lte: fim } },
+      where: { data: { gte: inicio, lte: fim }, ...(usuario.papel === "ADMIN" ? {} : { usuario: filtroSetor }) },
       select: { usuarioId: true, data: true, tipo: true },
     }),
   ]);
@@ -60,16 +65,20 @@ export const GET = comTratamentoDeErro(async (request: NextRequest) => {
 
   const linhas = sabados.map((sab) => {
     const dom = maisUmDia(sab);
+    // Plantão (sáb e/ou dom) vem primeiro; Domingo efetivo em seguida —
+    // ordem espelhada da aba "Visualização geral" do board.
     const plantao = usuarios
       .filter((u) => mapa.get(`${u.id}_${sab}`) === "PLANTAO" || mapa.get(`${u.id}_${dom}`) === "PLANTAO")
+      .map((u) => primeiroNome(u.nomeCompleto));
+    const domingoEfetivo = usuarios
+      .filter((u) => mapa.get(`${u.id}_${dom}`) === "DOMINGO_EFETIVO")
       .map((u) => primeiroNome(u.nomeCompleto));
     return {
       sab,
       dom,
-      plantao,
+      plantao: [...plantao, ...domingoEfetivo],
       expediente: porTipo(sab, "NORMAL"),
       folga: porTipo(sab, "FOLGA"),
-      homeOffice: porTipo(sab, "HOME_OFFICE"),
     };
   });
 
@@ -96,16 +105,6 @@ export const GET = comTratamentoDeErro(async (request: NextRequest) => {
   ws.getColumn(2).width = 28;
   ws.getColumn(3).width = 34;
   ws.getColumn(4).width = 28;
-
-  // Home office no sábado (14h - 22h)
-  const comHo = linhas.filter((l) => l.homeOffice.length > 0);
-  if (comHo.length > 0) {
-    ws.addRow([]);
-    ws.addRow(["Home office no sábado (14h - 22h)"]).font = { bold: true };
-    for (const l of comHo) {
-      ws.addRow([fmt(l.sab), l.homeOffice.join(", ")]);
-    }
-  }
 
   const buffer = await wb.xlsx.writeBuffer();
   return new NextResponse(buffer as ArrayBuffer, {

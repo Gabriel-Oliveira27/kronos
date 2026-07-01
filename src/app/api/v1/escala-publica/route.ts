@@ -80,11 +80,17 @@ export async function GET(request: NextRequest) {
   const fim = new Date(`${ano}-${mesStr}-${ultimoDiaStr}T23:59:59.999Z`);
   // ───────────────────────────────────────────────────────────────────────
 
+  // Multi-setor: o usuário pertence ao setor se ele for o principal OU estiver
+  // na lista `setores`.
+  const filtroUsuarioSetor = setorFiltro
+    ? { OR: [{ setor: setorFiltro }, { setores: { has: setorFiltro } }] }
+    : {};
+
   const [escalas, usuarios] = await Promise.all([
     prisma.escalaDia.findMany({
       where: {
         data: { gte: inicio, lte: fim },
-        ...(setorFiltro ? { usuario: { setor: setorFiltro } } : {}),
+        ...(setorFiltro ? { usuario: filtroUsuarioSetor } : {}),
       },
       orderBy: { data: "asc" },
       select: {
@@ -92,12 +98,13 @@ export async function GET(request: NextRequest) {
         usuarioId: true,
         data: true,
         tipo: true,
+        etiquetaId: true,
         observacao: true,
         usuario: { select: { id: true, nomeCompleto: true, setor: true, fotoUrl: true } },
       },
     }),
     prisma.usuario.findMany({
-      where: setorFiltro ? { setor: setorFiltro } : {},
+      where: filtroUsuarioSetor,
       orderBy: { nomeCompleto: "asc" },
       select: { id: true, nomeCompleto: true, setor: true, fotoUrl: true },
     }),

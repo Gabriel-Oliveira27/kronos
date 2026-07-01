@@ -20,6 +20,7 @@ export const POST = comTratamentoDeErro(async (request: NextRequest) => {
     data: {
       nome: dados.nome, descricao: dados.descricao || null,
       horasSemanais: dados.horasSemanais, jornadaDiaria: dados.jornadaDiaria,
+      jornadaPlantao: dados.jornadaPlantao,
       configuracao: dados.configuracao ? JSON.parse(JSON.stringify(dados.configuracao)) : null,
       criadoPorId: usuario.id,
     },

@@ -16,8 +16,9 @@ enum Papel {
 enum TipoDiaEscala {
   NORMAL
   PLANTAO
-  HOME_OFFICE
+  HOME_OFFICE // legado: não é mais oferecido na UI, mas dias antigos permanecem
   FOLGA
+  DOMINGO_EFETIVO
   // SABADO_REDUZIDO removido — não faz parte das regras de negócio (ver migration)
 }
 
@@ -29,7 +30,8 @@ enum Visibilidade {
 model Usuario {
   id              String   @id @default(cuid())
   nomeCompleto    String
-  setor           String
+  setor           String   // setor principal (primeiro de `setores`) — mantido para compat
+  setores         String[] @default([]) // todos os setores do usuário; vazio = só o principal
   email           String?  @unique
   username        String   @unique
   senhaHash       String
@@ -75,6 +77,9 @@ model EscalaDia {
   usuario      Usuario       @relation(fields: [usuarioId], references: [id])
   data         DateTime
   tipo         TipoDiaEscala
+  // Etiqueta personalizada do setor (id dentro de Setor.etiquetas). null = usa
+  // a etiqueta padrão do tipo. Sem FK de propósito: etiquetas vivem em JSON.
+  etiquetaId   String?
   observacao   String?
   criadoPorId  String
   atualizadoEm DateTime      @updatedAt
@@ -160,6 +165,9 @@ model Setor {
   id                 String   @id @default(cuid())
   nome               String   @unique
   palavraSecretaHash String?
+  // Etiquetas de escala do setor: [{ id, nome, cor, tipo }]. null = usa o
+  // conjunto padrão do código (ETIQUETAS_PADRAO em src/lib/escala.ts).
+  etiquetas          Json?
   criadoEm           DateTime @default(now())
   atualizadoEm       DateTime @updatedAt
 
@@ -167,11 +175,14 @@ model Setor {
 }
 
 model ModeloHorario {
-  id            String   @id @default(cuid())
-  nome          String
-  descricao     String?
-  horasSemanais Float    @default(44)
-  jornadaDiaria Float    @default(8)
+  id             String   @id @default(cuid())
+  nome           String
+  descricao      String?
+  horasSemanais  Float    @default(44)
+  jornadaDiaria  Float    @default(8)
+  // Jornada reduzida (h/dia) na semana que antecede um fim de semana de
+  // plantão do colaborador. Padrão 7.5 = 7h30.
+  jornadaPlantao Float    @default(7.5)
   configuracao  Json?    // { diasUteis: { seg: 8, ter: 8, ... }, avisos: [{hora, mensagem}] }
   criadoPorId   String
   criadoEm      DateTime @default(now())

@@ -30,10 +30,12 @@ export interface LinhaFds {
   plantao: string[];
   expediente: string[];
   folga: string[];
-  homeOffice: string[];
 }
 
-/** Monta as linhas de fim de semana (uma por sábado do mês) a partir das escalas. */
+/** Monta as linhas da visualização geral (uma por sábado do mês).
+ * Na coluna "Plantão FDS", quem está de PLANTÃO (vale pelos dois dias) vem
+ * primeiro; quem está de DOMINGO_EFETIVO vem em seguida — essa ordem também
+ * vale para a planilha/PDF gerados. */
 export function montarLinhasFds(
   usuarios: UsuarioResumo[],
   escalas: EscalaView[],
@@ -49,17 +51,18 @@ export function montarLinhasFds(
 
   return sabados.map((sab) => {
     const dom = maisUmDia(sab);
-    // Plantão FDS = plantão no sábado e/ou no domingo
     const plantao = usuarios
       .filter((u) => mapa.get(`${u.id}_${sab}`) === "PLANTAO" || mapa.get(`${u.id}_${dom}`) === "PLANTAO")
+      .map((u) => primeiroNome(u.nomeCompleto));
+    const domingoEfetivo = usuarios
+      .filter((u) => mapa.get(`${u.id}_${dom}`) === "DOMINGO_EFETIVO")
       .map((u) => primeiroNome(u.nomeCompleto));
     return {
       sab,
       dom,
-      plantao,
+      plantao: [...plantao, ...domingoEfetivo],
       expediente: porTipo(sab, "NORMAL"),
       folga: porTipo(sab, "FOLGA"),
-      homeOffice: porTipo(sab, "HOME_OFFICE"),
     };
   });
 }
@@ -74,7 +77,6 @@ export const EscalaFimDeSemana = forwardRef<
   }
 >(function EscalaFimDeSemana({ usuarios, escalas, diasDoMes, mesAtivo }, ref) {
   const linhas = montarLinhasFds(usuarios, escalas, diasDoMes);
-  const comHomeOffice = linhas.filter((l) => l.homeOffice.length > 0);
 
   const COL = "px-4 py-3 text-left align-top";
 
@@ -86,9 +88,11 @@ export const EscalaFimDeSemana = forwardRef<
     >
       <div>
         <p className="font-display text-lg font-semibold capitalize text-slate-900 dark:text-white">
-          Escala de fim de semana — {nomeMes(mesAtivo)}
+          Visualização geral — {nomeMes(mesAtivo)}
         </p>
-        <p className="text-xs text-slate-500 dark:text-slate-400">Plantão de fim de semana, expediente e folga de sábado.</p>
+        <p className="text-xs text-slate-500 dark:text-slate-400">
+          Plantão e domingo efetivo, expediente e folga de sábado. Quem está de plantão aparece primeiro.
+        </p>
       </div>
 
       <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
@@ -122,21 +126,6 @@ export const EscalaFimDeSemana = forwardRef<
           </tbody>
         </table>
       </div>
-
-      {comHomeOffice.length > 0 && (
-        <div className="rounded-xl border border-brand-green/30 bg-brand-green/5 p-4 dark:bg-brand-green/10">
-          <p className="text-xs font-semibold uppercase tracking-wide text-brand-green-dark dark:text-brand-green">
-            Home office no sábado (14h - 22h)
-          </p>
-          <div className="mt-2 flex flex-col gap-1">
-            {comHomeOffice.map((l) => (
-              <p key={l.sab} className="text-sm text-slate-600 dark:text-slate-300">
-                {fmtData(l.sab)} — {l.homeOffice.join(", ")}
-              </p>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 });

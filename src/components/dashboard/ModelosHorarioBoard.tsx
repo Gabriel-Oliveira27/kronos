@@ -10,7 +10,7 @@ interface ConfiguracaoDias { seg?:number;ter?:number;qua?:number;qui?:number;sex
 interface Configuracao { diasUteis?: ConfiguracaoDias; avisos?: Aviso[] }
 interface ModeloView {
   id: string; nome: string; descricao: string | null;
-  horasSemanais: number; jornadaDiaria: number;
+  horasSemanais: number; jornadaDiaria: number; jornadaPlantao?: number;
   configuracao: Configuracao | null;
   criadoEm: string; _count: { usuarios: number }
 }
@@ -33,6 +33,7 @@ function FormModelo({ inicial, onSalvar, onCancelar }: {
   const [descricao, setDescricao] = useState(inicial?.descricao ?? "");
   const [horasSemanais, setHorasSemanais] = useState(String(inicial?.horasSemanais ?? 44));
   const [jornadaDiaria, setJornadaDiaria] = useState(String(inicial?.jornadaDiaria ?? 8));
+  const [jornadaPlantao, setJornadaPlantao] = useState(String(inicial?.jornadaPlantao ?? 7.5));
   const [diasUteis, setDiasUteis] = useState<ConfiguracaoDias>(inicial?.configuracao?.diasUteis ?? {});
   const [avisos, setAvisos] = useState<Aviso[]>(inicial?.configuracao?.avisos ?? []);
   const [salvando, setSalvando] = useState(false);
@@ -44,6 +45,7 @@ function FormModelo({ inicial, onSalvar, onCancelar }: {
       await onSalvar({
         nome, descricao: descricao || null,
         horasSemanais: Number(horasSemanais), jornadaDiaria: Number(jornadaDiaria),
+        jornadaPlantao: Number(jornadaPlantao),
         configuracao: { diasUteis, avisos },
       });
     } catch (e) { setErro(e instanceof Error ? e.message : "Erro ao salvar."); }
@@ -69,9 +71,12 @@ function FormModelo({ inicial, onSalvar, onCancelar }: {
         <Input label="Nome do modelo" value={nome} onChange={e => setNome(e.target.value)} placeholder="Ex: 8h Diárias" />
         <Input label="Descrição (opcional)" value={descricao} onChange={e => setDescricao(e.target.value)} />
       </div>
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-3">
         <Input label="Horas semanais" type="number" value={horasSemanais} onChange={e => setHorasSemanais(e.target.value)} />
         <Input label="Jornada diária (h)" type="number" value={jornadaDiaria} onChange={e => setJornadaDiaria(e.target.value)} />
+        <Input label="Semana de plantão (h/dia)" type="number" step="0.5" value={jornadaPlantao}
+          onChange={e => setJornadaPlantao(e.target.value)}
+          hint="Jornada na semana que antecede o plantão. 7.5 = 7h30." />
       </div>
 
       <div>
@@ -216,6 +221,7 @@ export function ModelosHorarioBoard({ modelosIniciais }: { modelosIniciais: Mode
                 <div className="mt-3 flex flex-wrap gap-2">
                   <span className="rounded-full bg-brand-blue/10 px-2.5 py-0.5 text-xs font-medium text-brand-blue">{m.horasSemanais}h/semana</span>
                   <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">{m.jornadaDiaria}h/dia</span>
+                  <span className="rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-medium text-purple-700 dark:bg-purple-950 dark:text-purple-300">plantão: {m.jornadaPlantao ?? 7.5}h/dia</span>
                   <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">{m._count.usuarios} usuário(s)</span>
                 </div>
                 {m.configuracao?.avisos && m.configuracao.avisos.length > 0 && (

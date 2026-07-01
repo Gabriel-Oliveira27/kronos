@@ -6,9 +6,14 @@ import { UsuarioForm, type UsuarioFormHandle } from "@/components/dashboard/Usua
 import { ROTULOS_ACESSO, formatarData, cn } from "@/lib/utils";
 
 export interface UsuarioView {
-  id: string; nomeCompleto: string; setor: string; email: string | null;
+  id: string; nomeCompleto: string; setor: string; setores?: string[]; email: string | null;
   username: string; papel: string; temApp: boolean; ativo: boolean; ehGhost?: boolean;
   fotoUrl: string | null; modeloHorarioId: string | null; criadoEm: string;
+}
+
+/** Lista efetiva de setores (fallback para o principal em registros antigos). */
+function setoresDe(u: UsuarioView): string[] {
+  return u.setores && u.setores.length > 0 ? u.setores : u.setor ? [u.setor] : [];
 }
 
 function Avatar({ usuario, size = 32 }: { usuario: UsuarioView; size?: number }) {
@@ -143,7 +148,7 @@ export function UsuariosBoard({
               ref={formRef}
               usuarioId={editando!.id}
               fotoUrlInicial={editando!.fotoUrl}
-              valoresIniciais={{ nomeCompleto: editando!.nomeCompleto, setor: editando!.setor,
+              valoresIniciais={{ nomeCompleto: editando!.nomeCompleto, setores: setoresDe(editando!),
                 username: editando!.username, email: editando!.email ?? "", papel: editando!.papel as never,
                 temApp: editando!.temApp, modeloHorarioId: editando!.modeloHorarioId ?? "" }}
               onSucesso={aoSalvar}
@@ -217,7 +222,11 @@ export function UsuariosBoard({
                     </div>
                   </td>
                   <td className="px-4 py-3">
-                    <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">{u.setor}</span>
+                    <span className="inline-flex flex-wrap gap-1">
+                      {setoresDe(u).map((s) => (
+                        <span key={s} className="inline-flex rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">{s}</span>
+                      ))}
+                    </span>
                   </td>
                   <td className="px-4 py-3">
                     <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold", BADGE_ACESSO[u.papel] ?? BADGE_ACESSO.USUARIO)}>

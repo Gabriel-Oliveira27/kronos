@@ -9,7 +9,7 @@ import type { Papel } from "@prisma/client";
 
 export interface UsuarioFormValues {
   nomeCompleto: string;
-  setor: string;
+  setores: string[];
   username: string;
   email: string;
   papel: Papel;
@@ -23,7 +23,7 @@ export interface UsuarioFormHandle {
 
 const VAZIO: UsuarioFormValues = {
   nomeCompleto: "",
-  setor: "",
+  setores: [],
   username: "",
   email: "",
   papel: "USUARIO",
@@ -105,7 +105,9 @@ export const UsuarioForm = forwardRef<UsuarioFormHandle, UsuarioFormProps>(funct
 
     const payload: Record<string, unknown> = {
       nomeCompleto: valores.nomeCompleto,
-      setor: valores.setor,
+      // O 1º setor é o principal; a lista completa vai em `setores`.
+      setor: valores.setores[0] ?? "",
+      setores: valores.setores,
       email: valores.email,
       papel: valores.papel,
       temApp: valores.temApp,
@@ -146,7 +148,7 @@ export const UsuarioForm = forwardRef<UsuarioFormHandle, UsuarioFormProps>(funct
   useImperativeHandle(ref, () => ({ salvar }));
 
   const podeSalvar =
-    !!valores.nomeCompleto && !!valores.setor && (editando || (!!valores.username && !!senha));
+    !!valores.nomeCompleto && valores.setores.length > 0 && (editando || (!!valores.username && !!senha));
 
   const fotoAtual = fotoUrl || fotoUrlInicial || "";
   const iniciais = valores.nomeCompleto
@@ -208,11 +210,13 @@ export const UsuarioForm = forwardRef<UsuarioFormHandle, UsuarioFormProps>(funct
         />
         <SeletorChip
           label="Setor"
-          value={valores.setor}
-          onChange={(v) => setValores({ ...valores, setor: v })}
+          multiple
+          values={valores.setores}
+          onChangeValues={(v) => setValores({ ...valores, setores: v })}
           opcoes={setores}
           permitirCriar
           placeholder="Buscar ou criar setor…"
+          hint="O primeiro é o setor principal. Vários setores = vê/edita as escalas de todos eles."
         />
         <Input
           label="E-mail (opcional)"

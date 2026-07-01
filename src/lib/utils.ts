@@ -42,6 +42,7 @@ export const ROTULOS_TIPO_DIA: Record<string, string> = {
   PLANTAO: "Plantão",
   HOME_OFFICE: "Home office",
   FOLGA: "Folga",
+  DOMINGO_EFETIVO: "Domingo efetivo",
 };
 
 /** Horário fixo exibido por tipo de escala. Home office cumpre 14h–22h.

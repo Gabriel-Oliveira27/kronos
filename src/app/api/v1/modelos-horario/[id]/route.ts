@@ -15,6 +15,7 @@ export const PUT = comTratamentoDeErro(async (request: NextRequest, { params }: 
     where: { id },
     data: { nome: dados.nome, descricao: dados.descricao || null,
       horasSemanais: dados.horasSemanais, jornadaDiaria: dados.jornadaDiaria,
+      jornadaPlantao: dados.jornadaPlantao,
       configuracao: dados.configuracao ? JSON.parse(JSON.stringify(dados.configuracao)) : null },
   });
   return NextResponse.json(atualizado);

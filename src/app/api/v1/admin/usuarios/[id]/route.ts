@@ -7,7 +7,7 @@ import { comTratamentoDeErro, ApiError } from "@/lib/api";
 import { registrarEvento } from "@/lib/log";
 
 const SELECT = {
-  id:true,nomeCompleto:true,setor:true,email:true,username:true,papel:true,
+  id:true,nomeCompleto:true,setor:true,setores:true,email:true,username:true,papel:true,
   temApp:true,ativo:true,ehGhost:true,fotoUrl:true,modeloHorarioId:true,criadoEm:true,atualizadoEm:true,
 } as const;
 interface Params { params: Promise<{ id: string }> }
@@ -18,11 +18,15 @@ export const PUT = comTratamentoDeErro(async (request: NextRequest, { params }: 
   const existente = await prisma.usuario.findUnique({ where: { id } });
   if (!existente) throw ApiError.naoEncontrado();
   const dados = atualizarUsuarioSchema.parse(await request.json());
+  // Multi-setor: se `setores` vier, ele manda; o `setor` principal vira o 1º.
+  const setores = dados.setores && dados.setores.length > 0
+    ? dados.setores
+    : dados.setor !== undefined ? [dados.setor] : undefined;
   const atualizado = await prisma.usuario.update({
     where: { id },
     data: {
       ...(dados.nomeCompleto !== undefined ? { nomeCompleto: dados.nomeCompleto } : {}),
-      ...(dados.setor       !== undefined ? { setor: dados.setor } : {}),
+      ...(setores !== undefined ? { setor: setores[0], setores } : {}),
       ...(dados.email       !== undefined ? { email: dados.email || null } : {}),
       ...(dados.papel       !== undefined ? { papel: dados.papel } : {}),
       ...(dados.temApp      !== undefined ? { temApp: dados.temApp } : {}),

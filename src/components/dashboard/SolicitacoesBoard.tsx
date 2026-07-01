@@ -100,7 +100,7 @@ export function SolicitacoesBoard({ solicitacoesIniciais }: { solicitacoesInicia
               <div className="mt-5 border-t border-slate-200 pt-5 dark:border-slate-800">
                 <UsuarioForm
                   solicitacaoId={s.id}
-                  valoresIniciais={{ nomeCompleto: s.nomeCompleto, setor: s.setor, email: s.email ?? "" }}
+                  valoresIniciais={{ nomeCompleto: s.nomeCompleto, setores: s.setor ? [s.setor] : [], email: s.email ?? "" }}
                   onSucesso={() => aoCriarAcesso(s.id)}
                   onCancelar={() => setAprovando(null)}
                 />

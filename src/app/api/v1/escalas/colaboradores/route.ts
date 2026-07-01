@@ -9,10 +9,17 @@ import { comTratamentoDeErro } from "@/lib/api";
  * via `POST /escalas`. Retorna o mínimo necessário (sem dados sensíveis).
  */
 export const GET = comTratamentoDeErro(async () => {
-  await exigirPapel("CONFIGURADOR_ESCALA", "ADMIN");
+  const usuario = await exigirPapel("CONFIGURADOR_ESCALA", "ADMIN");
 
+  // Configurador só enxerga colaboradores dos próprios setores; admin vê todos.
+  const meusSetores = usuario.setores.length > 0 ? usuario.setores : [usuario.setor];
   const colaboradores = await prisma.usuario.findMany({
-    where: { ativo: true },
+    where: {
+      ativo: true,
+      ...(usuario.papel === "ADMIN"
+        ? {}
+        : { OR: [{ setor: { in: meusSetores } }, { setores: { hasSome: meusSetores } }] }),
+    },
     orderBy: { nomeCompleto: "asc" },
     select: { id: true, nomeCompleto: true, setor: true },
   });
