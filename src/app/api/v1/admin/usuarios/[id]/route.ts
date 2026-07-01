@@ -8,7 +8,7 @@ import { registrarEvento } from "@/lib/log";
 
 const SELECT = {
   id:true,nomeCompleto:true,setor:true,email:true,username:true,papel:true,
-  temApp:true,ativo:true,fotoUrl:true,criadoEm:true,atualizadoEm:true,
+  temApp:true,ativo:true,ehGhost:true,fotoUrl:true,modeloHorarioId:true,criadoEm:true,atualizadoEm:true,
 } as const;
 interface Params { params: Promise<{ id: string }> }
 
@@ -27,6 +27,7 @@ export const PUT = comTratamentoDeErro(async (request: NextRequest, { params }: 
       ...(dados.papel       !== undefined ? { papel: dados.papel } : {}),
       ...(dados.temApp      !== undefined ? { temApp: dados.temApp } : {}),
       ...(dados.ativo       !== undefined ? { ativo: dados.ativo } : {}),
+      ...(dados.ehGhost     !== undefined ? { ehGhost: dados.ehGhost } : {}),
       ...(dados.fotoUrl     !== undefined ? { fotoUrl: dados.fotoUrl || null } : {}),
       ...(dados.novaSenha ? { senhaHash: await hashSenha(dados.novaSenha) } : {}),
       ...(dados.modeloHorarioId !== undefined ? { modeloHorarioId: dados.modeloHorarioId || null } : {}),

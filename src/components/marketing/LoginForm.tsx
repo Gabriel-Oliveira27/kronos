@@ -44,7 +44,7 @@ export function LoginForm({ redirectPara }: { redirectPara: string }) {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <Input name="username" label="Usuário" placeholder="seu.usuario" autoComplete="username" required />
+      <Input name="username" label="Usuário ou e-mail" placeholder="seu.usuario ou email@empresa.com" autoComplete="username" required />
       <Input name="senha" type="password" label="Senha" autoComplete="current-password" required />
       {erro && <p className="text-sm text-danger">{erro}</p>}
       <Button type="submit" loading={enviando} className="mt-2">

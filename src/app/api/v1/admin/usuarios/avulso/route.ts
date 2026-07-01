@@ -30,7 +30,11 @@ export const POST = comTratamentoDeErro(async (request: NextRequest) => {
   const criador = await exigirPapel("CONFIGURADOR_ESCALA", "ADMIN");
 
   const corpo = await request.json();
-  const { nome, setor } = schema.parse(corpo);
+  const { nome, setor: setorInformado } = schema.parse(corpo);
+
+  // O configurador de escala só monta a escala do próprio setor, então o avulso
+  // que ele cria herda o setor dele (evita confusão). O admin pode informar.
+  const setor = criador.papel === "ADMIN" ? setorInformado : criador.setor;
 
   // Gera username único e seguro (sem colisão por aleatoriedade)
   const sufixo = randomBytes(4).toString("hex");
@@ -53,6 +57,8 @@ export const POST = comTratamentoDeErro(async (request: NextRequest) => {
       senhaHash,
       papel: "USUARIO",
       temApp: false,
+      ehGhost: true,
+      origem: "escala",
     },
     select: {
       id: true,
@@ -61,6 +67,7 @@ export const POST = comTratamentoDeErro(async (request: NextRequest) => {
       username: true,
       papel: true,
       temApp: true,
+      ehGhost: true,
       criadoEm: true,
     },
   });

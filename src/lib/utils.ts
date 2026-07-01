@@ -22,6 +22,21 @@ export const ROTULOS_PAPEL: Record<string, string> = {
   USUARIO: "Usuário",
 };
 
+/** Níveis de acesso oferecidos no formulário de usuário (substituem "papel").
+ * O papel SUPORTE deixou de ser um nível de acesso — virou apenas um setor. */
+export const OPCOES_ACESSO: { value: string; label: string }[] = [
+  { value: "USUARIO", label: "Comum" },
+  { value: "CONFIGURADOR_ESCALA", label: "Configura escala" },
+  { value: "ADMIN", label: "Administrador" },
+];
+
+export const ROTULOS_ACESSO: Record<string, string> = {
+  USUARIO: "Comum",
+  CONFIGURADOR_ESCALA: "Configura escala",
+  ADMIN: "Administrador",
+  SUPORTE: "Suporte",
+};
+
 export const ROTULOS_TIPO_DIA: Record<string, string> = {
   NORMAL: "Normal",
   PLANTAO: "Plantão",
@@ -37,6 +52,25 @@ export const HORARIO_POR_TIPO: Record<string, string> = {
 
 export function horarioDoTipo(tipo?: string | null): string | null {
   return tipo ? HORARIO_POR_TIPO[tipo] ?? null : null;
+}
+
+/** Siglas curtas por tipo de escala. No sábado, o "Normal" (expediente) é
+ * mostrado como "SAB" — bem mais claro que "NOR" para o dia de expediente. */
+export function siglaTipoEscala(tipo: string, dataISO?: string): string {
+  const base: Record<string, string> = {
+    NORMAL: "NOR",
+    PLANTAO: "PLT",
+    HOME_OFFICE: "HO",
+    FOLGA: "FOL",
+  };
+  if (tipo === "NORMAL" && dataISO && ehSabado(dataISO)) return "SAB";
+  return base[tipo] ?? tipo.slice(0, 3).toUpperCase();
+}
+
+/** true se a data (YYYY-MM-DD) cai num sábado, avaliada em UTC para bater com
+ * o armazenamento em UTC midnight. */
+export function ehSabado(dataISO: string): boolean {
+  return new Date(dataISO.slice(0, 10) + "T12:00:00Z").getUTCDay() === 6;
 }
 
 /** Escurece uma cor hex em `fator` (0–1) — usado para o estado :hover do

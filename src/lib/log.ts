@@ -24,7 +24,11 @@ export type TipoLog =
   | "CONFIG_APP_ALTERADA"
   | "LOGIN_BLOQUEADO"
   | "ESCALA_PUBLICA_FALHA"
-  | "ESCALA_PUBLICA_BLOQUEADA";
+  | "ESCALA_PUBLICA_BLOQUEADA"
+  | "ESCALA_PALAVRA_DEFINIDA"
+  | "SETOR_CRIADO"
+  | "SETOR_EDITADO"
+  | "SETOR_EXCLUIDO";
 
 interface RegistrarEventoInput {
   tipo: TipoLog;

@@ -36,6 +36,10 @@ model Usuario {
   papel           Papel    @default(USUARIO)
   ativo           Boolean  @default(true)
   temApp          Boolean  @default(false)
+  // Usuário-fantasma: criado avulso pela tela de escala só para completar a
+  // escala; não usa o sistema. `origem = "escala"` marca essa procedência.
+  ehGhost         Boolean  @default(false)
+  origem          String?
   fotoUrl         String?
   temaBase        String?  // "claro" | "escuro" | "noturno" | "system"
   corDestaque     String?
@@ -147,6 +151,19 @@ model ConfiguracaoApp {
   atualizadoEm    DateTime @updatedAt
 
   @@map("configuracao_app")
+}
+
+// Setores gerenciados pelo admin: lista canônica usada para vincular usuários
+// (o Usuario.setor guarda o nome) e para recortar as escalas por setor. Cada
+// setor pode ter uma palavra secreta própria (hash) para a escala pública.
+model Setor {
+  id                 String   @id @default(cuid())
+  nome               String   @unique
+  palavraSecretaHash String?
+  criadoEm           DateTime @default(now())
+  atualizadoEm       DateTime @updatedAt
+
+  @@map("setores")
 }
 
 model ModeloHorario {

@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { timingSafeEqual } from "crypto";
 import { prisma } from "@/lib/prisma";
+import { verificarSenha } from "@/lib/auth";
 import { registrarEvento } from "@/lib/log";
 import { contarEventos, obterIp } from "@/lib/ratelimit";
 
@@ -25,11 +26,15 @@ export async function GET(request: NextRequest) {
   const mes = searchParams.get("mes") ?? "";
   const ip = obterIp(request);
 
-  const palavraCorreta = process.env.PALAVRA_SECRETA_ESCALA ?? "";
+  const palavraGlobal = process.env.PALAVRA_SECRETA_ESCALA ?? "";
+  const setoresComPalavra = await prisma.setor.findMany({
+    where: { palavraSecretaHash: { not: null } },
+    select: { nome: true, palavraSecretaHash: true },
+  });
 
-  if (!palavraCorreta) {
+  if (!palavraGlobal && setoresComPalavra.length === 0) {
     return NextResponse.json(
-      { error: "Escala pública não configurada. Defina PALAVRA_SECRETA_ESCALA no servidor.", code: "NAO_CONFIGURADO" },
+      { error: "Escala pública não configurada. Um configurador precisa definir a palavra secreta do setor.", code: "NAO_CONFIGURADO" },
       { status: 503 }
     );
   }
@@ -40,7 +45,21 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Muitas tentativas. Tente novamente mais tarde.", code: "MUITAS_TENTATIVAS" }, { status: 429 });
   }
 
-  if (!comparaSegura(palavraSecreta, palavraCorreta)) {
+  // Resolve a palavra: primeiro contra o env global (mostra todos os setores),
+  // depois contra a palavra secreta de cada setor (mostra só aquele setor).
+  let setorFiltro: string | null = null;
+  let autorizado = !!palavraGlobal && comparaSegura(palavraSecreta, palavraGlobal);
+  if (!autorizado && palavraSecreta) {
+    for (const s of setoresComPalavra) {
+      if (s.palavraSecretaHash && (await verificarSenha(palavraSecreta, s.palavraSecretaHash))) {
+        autorizado = true;
+        setorFiltro = s.nome;
+        break;
+      }
+    }
+  }
+
+  if (!autorizado) {
     await registrarEvento({ tipo: "ESCALA_PUBLICA_FALHA", detalhe: { ip } });
     return NextResponse.json({ error: "Palavra secreta incorreta.", code: "PALAVRA_INCORRETA" }, { status: 401 });
   }
@@ -63,7 +82,10 @@ export async function GET(request: NextRequest) {
 
   const [escalas, usuarios] = await Promise.all([
     prisma.escalaDia.findMany({
-      where: { data: { gte: inicio, lte: fim } },
+      where: {
+        data: { gte: inicio, lte: fim },
+        ...(setorFiltro ? { usuario: { setor: setorFiltro } } : {}),
+      },
       orderBy: { data: "asc" },
       select: {
         id: true,
@@ -75,10 +97,11 @@ export async function GET(request: NextRequest) {
       },
     }),
     prisma.usuario.findMany({
+      where: setorFiltro ? { setor: setorFiltro } : {},
       orderBy: { nomeCompleto: "asc" },
       select: { id: true, nomeCompleto: true, setor: true, fotoUrl: true },
     }),
   ]);
 
-  return NextResponse.json({ mes, escalas, usuarios });
+  return NextResponse.json({ mes, setor: setorFiltro, escalas, usuarios });
 }

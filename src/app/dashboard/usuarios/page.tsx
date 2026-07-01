@@ -12,17 +12,13 @@ export default async function UsuariosPage() {
   }
   const usuarios = await prisma.usuario.findMany({
     orderBy: { criadoEm: "desc" },
-    select: { id:true,nomeCompleto:true,setor:true,email:true,username:true,papel:true,temApp:true,ativo:true,fotoUrl:true,modeloHorarioId:true,criadoEm:true },
+    select: { id:true,nomeCompleto:true,setor:true,email:true,username:true,papel:true,temApp:true,ativo:true,ehGhost:true,fotoUrl:true,modeloHorarioId:true,criadoEm:true },
   });
   return (
-    <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="font-display text-2xl font-semibold text-slate-900 dark:text-white">Usuários</h1>
-        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-          {usuario.papel === "ADMIN" ? "Gerencie acessos, papéis e status dos colaboradores." : "Visão geral dos usuários — edição restrita a administradores."}
-        </p>
-      </div>
-      <UsuariosBoard usuariosIniciais={JSON.parse(JSON.stringify(usuarios))} podeEditar={usuario.papel === "ADMIN"} />
-    </div>
+    <UsuariosBoard
+      usuariosIniciais={JSON.parse(JSON.stringify(usuarios))}
+      podeEditar={usuario.papel === "ADMIN"}
+      descricao={usuario.papel === "ADMIN" ? "Gerencie acessos, setores e status dos colaboradores." : "Visão geral dos usuários — edição restrita a administradores."}
+    />
   );
 }

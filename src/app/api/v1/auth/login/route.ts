@@ -24,7 +24,12 @@ export const POST = comTratamentoDeErro(async (request: NextRequest) => {
   const corpo = await request.json();
   const { username, senha } = loginSchema.parse(corpo);
 
-  const usuario = await prisma.usuario.findUnique({ where: { username } });
+  // O identificador pode ser o usuário (login) OU o e-mail — o e-mail é único,
+  // então qualquer um dos dois resolve para no máximo um usuário.
+  const identificador = username.trim();
+  const usuario = await prisma.usuario.findFirst({
+    where: { OR: [{ username: identificador }, { email: identificador }] },
+  });
 
   if (!usuario) {
     await registrarEvento({ tipo: "LOGIN_FALHA", detalhe: { username, ip } });
