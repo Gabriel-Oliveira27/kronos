@@ -73,15 +73,22 @@ export default async function EscalasPage({
   const mesAnterior = moverMes(mesAtivo, -1);
   const mesSeguinte = moverMes(mesAtivo, 1);
 
-  const [usuarios, escalas] = await Promise.all([
+  // Recorte por setor: o configurador só vê/edita a escala do próprio setor;
+  // o admin vê todos.
+  const ehAdmin = usuario.papel === "ADMIN";
+  const filtroSetor = ehAdmin ? {} : { setor: usuario.setor };
+
+  const [usuarios, escalas, setorRegistro] = await Promise.all([
     prisma.usuario.findMany({
+      where: filtroSetor,
       orderBy: { nomeCompleto: "asc" },
       select: { id: true, nomeCompleto: true, setor: true, temApp: true, fotoUrl: true },
     }),
     prisma.escalaDia.findMany({
-      where: { data: { gte: inicio, lte: fim } },
+      where: { data: { gte: inicio, lte: fim }, ...(ehAdmin ? {} : { usuario: { setor: usuario.setor } }) },
       select: { id: true, usuarioId: true, data: true, tipo: true, observacao: true },
     }),
+    ehAdmin ? null : prisma.setor.findUnique({ where: { nome: usuario.setor } }),
   ]);
 
   return (
@@ -92,7 +99,7 @@ export default async function EscalasPage({
             {nomeMes(anoAtivo, mesNumero)}
           </h1>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            Escala da equipe — {usuarios.length} colaborador(es)
+            {ehAdmin ? "Escala de todos os setores" : `Escala do setor ${usuario.setor}`} — {usuarios.length} colaborador(es)
           </p>
         </div>
         <div className="flex gap-2">
@@ -114,6 +121,9 @@ export default async function EscalasPage({
         escalasIniciais={JSON.parse(JSON.stringify(escalas))}
         diasDoMes={dias}
         mesAtivo={mesAtivo}
+        ehAdmin={ehAdmin}
+        setorConfigurador={ehAdmin ? null : usuario.setor}
+        setorTemPalavra={!!setorRegistro?.palavraSecretaHash}
       />
     </div>
   );

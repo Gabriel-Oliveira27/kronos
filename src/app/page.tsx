@@ -3,6 +3,21 @@ import { Logo } from "@/components/ui/Logo";
 import { Button } from "@/components/ui/Button";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { HeroMockup } from "@/components/marketing/HeroMockup";
+import { CalculadoraHoras } from "@/components/marketing/CalculadoraHoras";
+
+// Ícones simples e discretos para as características do produto (hero).
+const iconeRecurso = (d: string) => (
+  <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5 text-brand-blue">
+    <path d={d} stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+const CARACTERISTICAS = [
+  { titulo: "Escalas sincronizadas", icone: iconeRecurso("M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5m9-1.5 1.5 1.5 3-3") },
+  { titulo: "Controle de permissões", icone: iconeRecurso("M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z") },
+  { titulo: "Histórico de alterações", icone: iconeRecurso("M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z") },
+  { titulo: "Aplicativo integrado", icone: iconeRecurso("M10.5 1.5H8.25A2.25 2.25 0 0 0 6 3.75v16.5a2.25 2.25 0 0 0 2.25 2.25h7.5A2.25 2.25 0 0 0 18 20.25V3.75a2.25 2.25 0 0 0-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3") },
+];
 
 const RECURSOS = [
   {
@@ -48,6 +63,9 @@ export default function LandingPage() {
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <Logo withIcon={false} wordmarkClassName="text-2xl text-brand-blue" />
           <nav className="flex items-center gap-2 sm:gap-3">
+            <span className="hidden sm:inline">
+              <CalculadoraHoras />
+            </span>
             <Link
               href="/escala"
               className="hidden text-sm font-medium text-slate-600 transition-colors hover:text-slate-900 dark:text-slate-400 dark:hover:text-white sm:inline"
@@ -75,21 +93,19 @@ export default function LandingPage() {
           <div>
             {/* Pílula de destaque */}
             <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-brand-blue/30 bg-brand-blue/10 px-3 py-1">
-              <span className="h-1.5 w-1.5 rounded-full bg-brand-green animate-pulse" />
+              <span className="h-1.5 w-1.5 rounded-full bg-brand-green" />
               <span className="text-xs font-medium text-brand-blue">
-                Controle de ponto + escalas em um só lugar
+                Controle de ponto e escalas em um só lugar
               </span>
             </div>
 
             <h1 className="font-display text-4xl font-semibold leading-tight tracking-tight text-slate-900 dark:text-white sm:text-5xl">
-              Chega de foto{" "}
-              <span className="text-slate-400 dark:text-slate-500">de escala</span>{" "}
-              no grupo.
+              Organize a jornada da sua equipe sem complicação.
             </h1>
 
             <p className="mt-5 max-w-md text-base leading-relaxed text-slate-600 dark:text-slate-400">
-              Gestão de usuários, escalas de trabalho e conhecimento da equipe em um só lugar —
-              e a base que sincroniza com o app de ponto de cada colaborador.
+              Gerencie escalas, usuários e registros de ponto em um único painel. Tudo sincronizado
+              com o aplicativo utilizado pelos colaboradores.
             </p>
 
             <div className="mt-8 flex flex-wrap gap-3">
@@ -103,20 +119,20 @@ export default function LandingPage() {
               </Link>
             </div>
 
-            {/* Prova social / stats */}
-            <div className="mt-10 flex gap-8 border-t border-slate-200 pt-8 dark:border-slate-800">
-              <div>
-                <p className="font-display text-2xl font-semibold text-slate-900 dark:text-white">4</p>
-                <p className="text-xs text-slate-500">papéis de acesso</p>
-              </div>
-              <div>
-                <p className="font-display text-2xl font-semibold text-slate-900 dark:text-white">100%</p>
-                <p className="text-xs text-slate-500">sincronizado com o app</p>
-              </div>
-              <div>
-                <p className="font-display text-2xl font-semibold text-slate-900 dark:text-white">24h</p>
-                <p className="text-xs text-slate-500">de auditoria de exclusões</p>
-              </div>
+            {/* Atalho sempre visível para a calculadora de horas */}
+            <div id="calc-hero" className="mt-4 inline-flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
+              <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4"><path d="M9 7.5h6M9 12h6m-6 4.5h3M6.75 3h10.5A2.25 2.25 0 0 1 19.5 5.25v13.5A2.25 2.25 0 0 1 17.25 21H6.75A2.25 2.25 0 0 1 4.5 18.75V5.25A2.25 2.25 0 0 1 6.75 3Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              <CalculadoraHoras />
+            </div>
+
+            {/* Características do produto — funcionalidades, não métricas */}
+            <div className="mt-10 grid grid-cols-1 gap-x-8 gap-y-4 border-t border-slate-200 pt-8 dark:border-slate-800 sm:grid-cols-2">
+              {CARACTERISTICAS.map((c) => (
+                <div key={c.titulo} className="flex items-center gap-3">
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-brand-blue/10">{c.icone}</span>
+                  <span className="text-sm font-medium text-slate-700 dark:text-slate-200">{c.titulo}</span>
+                </div>
+              ))}
             </div>
           </div>
 

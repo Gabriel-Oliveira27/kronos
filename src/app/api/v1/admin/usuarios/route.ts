@@ -8,7 +8,7 @@ import { registrarEvento } from "@/lib/log";
 
 const SELECT = {
   id:true,nomeCompleto:true,setor:true,email:true,username:true,papel:true,
-  temApp:true,ativo:true,fotoUrl:true,modeloHorarioId:true,criadoEm:true,atualizadoEm:true,
+  temApp:true,ativo:true,ehGhost:true,fotoUrl:true,modeloHorarioId:true,criadoEm:true,atualizadoEm:true,
 } as const;
 
 export const GET = comTratamentoDeErro(async (request: NextRequest) => {
@@ -34,7 +34,8 @@ export const POST = comTratamentoDeErro(async (request: NextRequest) => {
       data: {
         nomeCompleto: dados.nomeCompleto, setor: dados.setor, username: dados.username,
         senhaHash, email: dados.email || null, papel: dados.papel,
-        temApp: dados.temApp, ativo: dados.ativo ?? true, fotoUrl: dados.fotoUrl || null,
+        temApp: dados.temApp, ativo: dados.ativo ?? true, ehGhost: dados.ehGhost ?? false,
+        fotoUrl: dados.fotoUrl || null,
         modeloHorarioId: dados.modeloHorarioId || null,
       },
       select: SELECT,

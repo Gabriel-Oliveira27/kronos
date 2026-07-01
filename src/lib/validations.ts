@@ -46,6 +46,7 @@ export const criarUsuarioSchema = z.object({
   papel: PapelEnum.default("USUARIO"),
   temApp: z.boolean().default(false),
   ativo: z.boolean().default(true),
+  ehGhost: z.boolean().default(false),
   fotoUrl: z.string().url().optional().or(z.literal("")),
   solicitacaoId: z.string().optional(),
   modeloHorarioId: z.string().optional().or(z.literal("")),
@@ -58,6 +59,7 @@ export const atualizarUsuarioSchema = z.object({
   papel: PapelEnum.optional(),
   temApp: z.boolean().optional(),
   ativo: z.boolean().optional(),
+  ehGhost: z.boolean().optional(),
   fotoUrl: z.string().url().optional().or(z.literal("")),
   novaSenha: z.string().min(6, "A senha precisa ter ao menos 6 caracteres.").optional().or(z.literal("")),
   temaBase: TemaBaseEnum,
@@ -93,6 +95,38 @@ export const escalaDiaSchema = z.object({
 export const escalaDiaAtualizarSchema = z.object({
   tipo: TipoDiaEscalaEnum.optional(),
   observacao: z.string().trim().max(500).optional().or(z.literal("")),
+});
+
+// Salvamento em lote da escala: o front acumula as alterações no localStorage
+// enquanto edita e envia tudo de uma vez ao concluir (menos requisições).
+// `tipo: null` remove o dia da escala do colaborador.
+export const escalasBulkSchema = z.object({
+  mes: z.string().regex(/^\d{4}-\d{2}$/, "Mês inválido (use yyyy-mm)."),
+  alteracoes: z
+    .array(
+      z.object({
+        usuarioId: z.string().min(1),
+        data: z.coerce.date({ error: "Data inválida." }),
+        tipo: TipoDiaEscalaEnum.nullable(),
+      })
+    )
+    .max(1000),
+});
+
+// ── Setores gerenciados pelo admin ──
+export const setorSchema = z.object({
+  nome: z.string().trim().min(1, "Informe o nome do setor.").max(60),
+});
+
+// Palavra secreta da escala pública por setor. Vazio limpa a palavra.
+export const palavraSecretaSetorSchema = z.object({
+  setorId: z.string().optional(),
+  palavraSecreta: z
+    .string()
+    .trim()
+    .min(4, "A palavra secreta precisa ter ao menos 4 caracteres.")
+    .max(100)
+    .or(z.literal("")),
 });
 
 export const conhecimentoItemSchema = z.object({
