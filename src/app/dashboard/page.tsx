@@ -2,9 +2,10 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { usuarioAtual } from "@/lib/session";
 import { Card } from "@/components/ui/Card";
-import { formatarData, horarioDoTipo } from "@/lib/utils";
+import { formatarData } from "@/lib/utils";
+import { sabadoDaSemana, somarDias, formatarJornada } from "@/lib/escala";
 
-async function proximaData(usuarioId: string, tipo: "PLANTAO" | "HOME_OFFICE" | "FOLGA") {
+async function proximaData(usuarioId: string, tipo: "PLANTAO" | "DOMINGO_EFETIVO" | "FOLGA") {
   const hoje = new Date();
   hoje.setUTCHours(0, 0, 0, 0);
   const escala = await prisma.escalaDia.findFirst({
@@ -12,6 +13,29 @@ async function proximaData(usuarioId: string, tipo: "PLANTAO" | "HOME_OFFICE" | 
     orderBy: { data: "asc" },
   });
   return escala?.data ?? null;
+}
+
+/** Se o usuário tem plantão no fim de semana desta semana, devolve os dados do
+ * aviso de jornada reduzida (ex.: plantão dia 11-12 → aviso na semana 6-10). */
+async function avisoSemanaPlantao(usuarioId: string, modeloHorarioId: string | null) {
+  const hojeISO = new Date().toISOString().slice(0, 10);
+  const sab = sabadoDaSemana(hojeISO);
+  const dom = somarDias(sab, 1);
+
+  const plantao = await prisma.escalaDia.findFirst({
+    where: {
+      usuarioId,
+      tipo: "PLANTAO",
+      data: { gte: new Date(sab + "T00:00:00.000Z"), lte: new Date(dom + "T23:59:59.999Z") },
+    },
+  });
+  if (!plantao) return null;
+
+  const modelo = modeloHorarioId
+    ? await prisma.modeloHorario.findUnique({ where: { id: modeloHorarioId }, select: { jornadaPlantao: true } })
+    : null;
+
+  return { sab, dom, jornada: formatarJornada(modelo?.jornadaPlantao ?? 7.5) };
 }
 
 function CardProximo({ titulo, data, tom, sub }: { titulo: string; data: Date | null; tom: string; sub?: string }) {
@@ -39,13 +63,16 @@ export default async function DashboardHomePage() {
   // Cards de próxima escala apenas para setor "Suporte" (item 9)
   const ehSuporte = usuario.setor?.toLowerCase() === "suporte";
 
-  const [proximoPlantao, proximoHomeOffice, proximaFolga] = ehSuporte
-    ? await Promise.all([
-        proximaData(usuario.id, "PLANTAO"),
-        proximaData(usuario.id, "HOME_OFFICE"),
-        proximaData(usuario.id, "FOLGA"),
-      ])
-    : [null, null, null];
+  const [[proximoPlantao, proximoDomingo, proximaFolga], avisoPlantao] = await Promise.all([
+    ehSuporte
+      ? Promise.all([
+          proximaData(usuario.id, "PLANTAO"),
+          proximaData(usuario.id, "DOMINGO_EFETIVO"),
+          proximaData(usuario.id, "FOLGA"),
+        ])
+      : Promise.resolve([null, null, null] as (Date | null)[]),
+    avisoSemanaPlantao(usuario.id, usuario.modeloHorarioId),
+  ]);
 
   const solicitacoesPendentes =
     usuario.papel === "ADMIN"
@@ -78,6 +105,29 @@ export default async function DashboardHomePage() {
         </p>
       </div>
 
+      {/* Aviso de semana de plantão: jornada reduzida nos dias úteis que
+          antecedem o fim de semana de plantão */}
+      {avisoPlantao && (
+        <div className="flex items-start gap-3 rounded-xl border border-brand-blue/30 bg-brand-blue/5 p-4 dark:bg-brand-blue/10">
+          <span className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-brand-blue/10">
+            <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5 text-brand-blue">
+              <path d="M12 9v3.75m0 3.75h.008v.008H12v-.008ZM21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
+                stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </span>
+          <div>
+            <p className="text-sm font-semibold text-brand-blue">
+              Semana de plantão — jornada de {avisoPlantao.jornada} por dia
+            </p>
+            <p className="mt-0.5 text-xs text-slate-600 dark:text-slate-300">
+              Você está escalado(a) para o plantão de {formatarData(new Date(avisoPlantao.sab + "T12:00:00Z"))} e{" "}
+              {formatarData(new Date(avisoPlantao.dom + "T12:00:00Z"))}. Nesta semana, cumpra apenas{" "}
+              {avisoPlantao.jornada} de trabalho por dia.
+            </p>
+          </div>
+        </div>
+      )}
+
       {usuario.papel === "ADMIN" && solicitacoesPendentes > 0 && (
         <Link href="/dashboard/solicitacoes"
           className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm font-medium text-amber-800 transition-colors hover:bg-amber-100 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300">
@@ -88,9 +138,9 @@ export default async function DashboardHomePage() {
       {/* Cards de escala — apenas setor Suporte */}
       {ehSuporte && (
         <div className="grid gap-4 sm:grid-cols-3">
-          <CardProximo titulo="Próximo plantão"    data={proximoPlantao}    tom="text-brand-blue" />
-          <CardProximo titulo="Próximo home office" data={proximoHomeOffice} tom="text-brand-green-dark dark:text-brand-green" sub={horarioDoTipo("HOME_OFFICE") ?? undefined} />
-          <CardProximo titulo="Próxima folga"       data={proximaFolga}      tom="text-amber-600 dark:text-amber-400" />
+          <CardProximo titulo="Próximo plantão"         data={proximoPlantao} tom="text-brand-blue" />
+          <CardProximo titulo="Próximo domingo efetivo" data={proximoDomingo} tom="text-purple-600 dark:text-purple-400" />
+          <CardProximo titulo="Próxima folga"           data={proximaFolga}   tom="text-amber-600 dark:text-amber-400" />
         </div>
       )}
 

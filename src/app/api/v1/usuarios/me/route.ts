@@ -7,11 +7,12 @@ import { comTratamentoDeErro, ApiError } from "@/lib/api";
 
 export const GET = comTratamentoDeErro(async () => {
   const usuario = await exigirUsuario();
-  // Inclui o nome do modelo de horário atribuído (para a tela de perfil do app).
+  // Inclui o modelo de horário atribuído (nome para a tela de perfil do app;
+  // jornadaPlantao para o aviso de semana de plantão — ver docs/kronos-app-semana-plantao.md).
   const modeloHorario = usuario.modeloHorarioId
     ? await prisma.modeloHorario.findUnique({
         where: { id: usuario.modeloHorarioId },
-        select: { nome: true },
+        select: { nome: true, jornadaPlantao: true },
       })
     : null;
   return NextResponse.json({ ...usuario, modeloHorario });

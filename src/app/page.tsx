@@ -119,12 +119,6 @@ export default function LandingPage() {
               </Link>
             </div>
 
-            {/* Atalho sempre visível para a calculadora de horas */}
-            <div id="calc-hero" className="mt-4 inline-flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
-              <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4"><path d="M9 7.5h6M9 12h6m-6 4.5h3M6.75 3h10.5A2.25 2.25 0 0 1 19.5 5.25v13.5A2.25 2.25 0 0 1 17.25 21H6.75A2.25 2.25 0 0 1 4.5 18.75V5.25A2.25 2.25 0 0 1 6.75 3Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
-              <CalculadoraHoras />
-            </div>
-
             {/* Características do produto — funcionalidades, não métricas */}
             <div className="mt-10 grid grid-cols-1 gap-x-8 gap-y-4 border-t border-slate-200 pt-8 dark:border-slate-800 sm:grid-cols-2">
               {CARACTERISTICAS.map((c) => (
@@ -138,6 +132,33 @@ export default function LandingPage() {
 
           {/* Foto com o app na tela */}
           <HeroMockup />
+        </section>
+
+        {/* Calculadora de horas */}
+        <section className="border-t border-slate-200 dark:border-slate-800/60">
+          <div className="mx-auto flex max-w-6xl flex-col items-start gap-6 px-6 py-14 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-4">
+              <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-brand-blue/10">
+                <svg viewBox="0 0 24 24" fill="none" className="h-6 w-6 text-brand-blue">
+                  <path d="M9 7.5h6M9 12h6m-6 4.5h3M6.75 3h10.5A2.25 2.25 0 0 1 19.5 5.25v13.5A2.25 2.25 0 0 1 17.25 21H6.75A2.25 2.25 0 0 1 4.5 18.75V5.25A2.25 2.25 0 0 1 6.75 3Z"
+                    stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </span>
+              <div>
+                <h2 className="font-display text-xl font-semibold text-slate-900 dark:text-white">
+                  Calculadora de horas trabalhadas
+                </h2>
+                <p className="mt-1 max-w-xl text-sm leading-relaxed text-slate-600 dark:text-slate-400">
+                  Informe suas batidas e veja o total do dia, ou simule a que horas sair para
+                  cumprir a jornada — com sugestões de ajuste na entrada, na saída ou no almoço.
+                  Grátis, direto do navegador, sem login.
+                </p>
+              </div>
+            </div>
+            <div className="shrink-0" id="calculadora">
+              <CalculadoraHoras variante="botao" />
+            </div>
+          </div>
         </section>
 
         {/* Recursos */}

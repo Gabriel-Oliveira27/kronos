@@ -20,7 +20,7 @@ export const POST = comTratamentoDeErro(async (request: NextRequest) => {
     throw ApiError.semPermissao("Apenas o configurador de escala ou um administrador pode definir a palavra secreta.");
   }
 
-  const { setorId, palavraSecreta } = palavraSecretaSetorSchema.parse(await request.json());
+  const { setorId, setorNome, palavraSecreta } = palavraSecretaSetorSchema.parse(await request.json());
 
   // Resolve o setor-alvo conforme o papel.
   let setor;
@@ -29,10 +29,16 @@ export const POST = comTratamentoDeErro(async (request: NextRequest) => {
     setor = await prisma.setor.findUnique({ where: { id: setorId } });
     if (!setor) throw ApiError.naoEncontrado("Setor não encontrado.");
   } else {
-    // Configurador: sempre o próprio setor (cria o registro se ainda não houver).
+    // Configurador: um dos próprios setores (padrão: o principal). Cria o
+    // registro do setor na hora se ainda não houver.
+    const meusSetores = usuario.setores.length > 0 ? usuario.setores : [usuario.setor];
+    const alvo = setorNome ?? usuario.setor;
+    if (!meusSetores.includes(alvo)) {
+      throw ApiError.semPermissao("Você só pode definir a palavra secreta do seu próprio setor.");
+    }
     setor =
-      (await prisma.setor.findUnique({ where: { nome: usuario.setor } })) ??
-      (await prisma.setor.create({ data: { nome: usuario.setor } }));
+      (await prisma.setor.findUnique({ where: { nome: alvo } })) ??
+      (await prisma.setor.create({ data: { nome: alvo } }));
   }
 
   const palavraSecretaHash = palavraSecreta ? await hashSenha(palavraSecreta) : null;

@@ -13,8 +13,9 @@ const PAPEIS_QUE_EDITAM = ["CONFIGURADOR_ESCALA", "ADMIN"] as const;
  * requisição em vez de uma por clique). `tipo: null` remove o dia.
  *
  * Recorte por setor: o CONFIGURADOR_ESCALA só pode alterar a escala de usuários
- * do PRÓPRIO setor; o ADMIN pode alterar qualquer um. Ao final devolve a escala
- * do mês inteiro (já no escopo que o board mostra) para o front sincronizar.
+ * que compartilham ao menos um setor com ele (multi-setor); o ADMIN pode
+ * alterar qualquer um. Ao final devolve a escala do mês inteiro no escopo que
+ * o board mostra para o front sincronizar.
  */
 export const POST = comTratamentoDeErro(async (request: NextRequest) => {
   const usuario = await exigirUsuario();
@@ -23,22 +24,27 @@ export const POST = comTratamentoDeErro(async (request: NextRequest) => {
     throw ApiError.semPermissao("Só o configurador de escala ou um administrador pode editar escalas.");
   }
 
+  const meusSetores = usuario.setores.length > 0 ? usuario.setores : [usuario.setor];
   const { mes, alteracoes } = escalasBulkSchema.parse(await request.json());
 
   if (alteracoes.length > 0) {
     // Valida o escopo: todos os usuários-alvo precisam existir e, para o
-    // configurador, pertencer ao setor dele.
+    // configurador, compartilhar ao menos um setor com ele.
     const idsAlvo = [...new Set(alteracoes.map((a) => a.usuarioId))];
     const alvos = await prisma.usuario.findMany({
       where: { id: { in: idsAlvo } },
-      select: { id: true, setor: true },
+      select: { id: true, setor: true, setores: true },
     });
-    const mapaSetor = new Map(alvos.map((u) => [u.id, u.setor]));
+    const mapaAlvo = new Map(alvos.map((u) => [u.id, u]));
 
     for (const id of idsAlvo) {
-      if (!mapaSetor.has(id)) throw ApiError.naoEncontrado("Colaborador não encontrado.");
-      if (!ehAdmin && mapaSetor.get(id) !== usuario.setor) {
-        throw ApiError.semPermissao("Você só pode alterar a escala de colaboradores do seu setor.");
+      const alvo = mapaAlvo.get(id);
+      if (!alvo) throw ApiError.naoEncontrado("Colaborador não encontrado.");
+      if (!ehAdmin) {
+        const setoresAlvo = alvo.setores.length > 0 ? alvo.setores : [alvo.setor];
+        if (!setoresAlvo.some((s) => meusSetores.includes(s))) {
+          throw ApiError.semPermissao("Você só pode alterar a escala de colaboradores do seu setor.");
+        }
       }
     }
 
@@ -54,10 +60,19 @@ export const POST = comTratamentoDeErro(async (request: NextRequest) => {
           continue;
         }
         if (existente) {
-          await tx.escalaDia.update({ where: { id: existente.id }, data: { tipo: alt.tipo } });
+          await tx.escalaDia.update({
+            where: { id: existente.id },
+            data: { tipo: alt.tipo, etiquetaId: alt.etiquetaId ?? null },
+          });
         } else {
           await tx.escalaDia.create({
-            data: { usuarioId: alt.usuarioId, data: alt.data, tipo: alt.tipo, criadoPorId: usuario.id },
+            data: {
+              usuarioId: alt.usuarioId,
+              data: alt.data,
+              tipo: alt.tipo,
+              etiquetaId: alt.etiquetaId ?? null,
+              criadoPorId: usuario.id,
+            },
           });
         }
       }
@@ -80,9 +95,15 @@ export const POST = comTratamentoDeErro(async (request: NextRequest) => {
   const escalas = await prisma.escalaDia.findMany({
     where: {
       data: { gte: inicio, lte: fim },
-      ...(ehAdmin ? {} : { usuario: { setor: usuario.setor } }),
+      ...(ehAdmin
+        ? {}
+        : {
+            usuario: {
+              OR: [{ setor: { in: meusSetores } }, { setores: { hasSome: meusSetores } }],
+            },
+          }),
     },
-    select: { id: true, usuarioId: true, data: true, tipo: true, observacao: true },
+    select: { id: true, usuarioId: true, data: true, tipo: true, etiquetaId: true, observacao: true },
   });
 
   return NextResponse.json({ escalas });

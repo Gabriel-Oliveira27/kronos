@@ -7,7 +7,7 @@ import { comTratamentoDeErro, ApiError } from "@/lib/api";
 import { registrarEvento } from "@/lib/log";
 
 const SELECT = {
-  id:true,nomeCompleto:true,setor:true,email:true,username:true,papel:true,
+  id:true,nomeCompleto:true,setor:true,setores:true,email:true,username:true,papel:true,
   temApp:true,ativo:true,ehGhost:true,fotoUrl:true,modeloHorarioId:true,criadoEm:true,atualizadoEm:true,
 } as const;
 
@@ -29,10 +29,12 @@ export const POST = comTratamentoDeErro(async (request: NextRequest) => {
   const existente = await prisma.usuario.findUnique({ where: { username: dados.username } });
   if (existente) throw new ApiError(409,"Já existe um usuário com esse nome de usuário.","USERNAME_DUPLICADO");
   const senhaHash = await hashSenha(dados.senha);
+  // Multi-setor: `setores` é a lista completa; `setor` (principal) é o 1º dela.
+  const setores = dados.setores && dados.setores.length > 0 ? dados.setores : [dados.setor];
   const [usuario] = await prisma.$transaction(async tx => {
     const criado = await tx.usuario.create({
       data: {
-        nomeCompleto: dados.nomeCompleto, setor: dados.setor, username: dados.username,
+        nomeCompleto: dados.nomeCompleto, setor: setores[0], setores, username: dados.username,
         senhaHash, email: dados.email || null, papel: dados.papel,
         temApp: dados.temApp, ativo: dados.ativo ?? true, ehGhost: dados.ehGhost ?? false,
         fotoUrl: dados.fotoUrl || null,

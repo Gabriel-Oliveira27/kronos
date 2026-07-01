@@ -73,23 +73,40 @@ export default async function EscalasPage({
   const mesAnterior = moverMes(mesAtivo, -1);
   const mesSeguinte = moverMes(mesAtivo, 1);
 
-  // Recorte por setor: o configurador só vê/edita a escala do próprio setor;
-  // o admin vê todos.
+  // Recorte por setor: o configurador só vê/edita a escala dos próprios
+  // setores (multi-setor); o admin vê todos.
   const ehAdmin = usuario.papel === "ADMIN";
-  const filtroSetor = ehAdmin ? {} : { setor: usuario.setor };
+  const meusSetores = usuario.setores.length > 0 ? usuario.setores : [usuario.setor];
+  const filtroSetor = ehAdmin
+    ? {}
+    : { OR: [{ setor: { in: meusSetores } }, { setores: { hasSome: meusSetores } }] };
 
-  const [usuarios, escalas, setorRegistro] = await Promise.all([
+  // Janela estendida em +1 dia: o domingo do último sábado do mês pode cair no
+  // mês seguinte e é necessário para o par de plantão / visualização geral.
+  const fimEstendido = new Date(fim);
+  fimEstendido.setUTCDate(fimEstendido.getUTCDate() + 1);
+
+  const [usuarios, escalas, setoresRegistros] = await Promise.all([
     prisma.usuario.findMany({
       where: filtroSetor,
       orderBy: { nomeCompleto: "asc" },
-      select: { id: true, nomeCompleto: true, setor: true, temApp: true, fotoUrl: true },
+      select: {
+        id: true, nomeCompleto: true, setor: true, setores: true, temApp: true, fotoUrl: true,
+        modeloHorario: { select: { jornadaPlantao: true } },
+      },
     }),
     prisma.escalaDia.findMany({
-      where: { data: { gte: inicio, lte: fim }, ...(ehAdmin ? {} : { usuario: { setor: usuario.setor } }) },
-      select: { id: true, usuarioId: true, data: true, tipo: true, observacao: true },
+      where: { data: { gte: inicio, lte: fimEstendido }, ...(ehAdmin ? {} : { usuario: filtroSetor }) },
+      select: { id: true, usuarioId: true, data: true, tipo: true, etiquetaId: true, observacao: true },
     }),
-    ehAdmin ? null : prisma.setor.findUnique({ where: { nome: usuario.setor } }),
+    prisma.setor.findMany({ select: { nome: true, etiquetas: true, palavraSecretaHash: true } }),
   ]);
+
+  // Etiquetas por setor (nome → lista). Setores sem registro/JSON usam o padrão.
+  const etiquetasPorSetor: Record<string, unknown> = {};
+  for (const s of setoresRegistros) etiquetasPorSetor[s.nome] = s.etiquetas;
+
+  const setorPrincipalTemPalavra = !!setoresRegistros.find((s) => s.nome === usuario.setor)?.palavraSecretaHash;
 
   return (
     <div className="flex flex-col gap-6">
@@ -99,7 +116,7 @@ export default async function EscalasPage({
             {nomeMes(anoAtivo, mesNumero)}
           </h1>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            {ehAdmin ? "Escala de todos os setores" : `Escala do setor ${usuario.setor}`} — {usuarios.length} colaborador(es)
+            {ehAdmin ? "Escala de todos os setores" : `Escala de ${meusSetores.join(", ")}`} — {usuarios.length} colaborador(es)
           </p>
         </div>
         <div className="flex gap-2">
@@ -117,13 +134,14 @@ export default async function EscalasPage({
 
       <EscalasBoard
         key={mesAtivo}
-        usuarios={usuarios}
+        usuarios={JSON.parse(JSON.stringify(usuarios))}
         escalasIniciais={JSON.parse(JSON.stringify(escalas))}
         diasDoMes={dias}
         mesAtivo={mesAtivo}
         ehAdmin={ehAdmin}
-        setorConfigurador={ehAdmin ? null : usuario.setor}
-        setorTemPalavra={!!setorRegistro?.palavraSecretaHash}
+        meusSetores={ehAdmin ? [] : meusSetores}
+        setorTemPalavra={setorPrincipalTemPalavra}
+        etiquetasPorSetorJson={JSON.parse(JSON.stringify(etiquetasPorSetor))}
       />
     </div>
   );
