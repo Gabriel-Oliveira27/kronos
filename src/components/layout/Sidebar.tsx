@@ -36,7 +36,9 @@ const ITENS_BASE: NavItem[] = [
 ];
 
 const ITENS_ESCALA: NavItem[] = [
-  { href: "/dashboard/escalas",       label: "Escalas da equipe",  icone: ICONES.schedule, papeis: ["CONFIGURADOR_ESCALA","ADMIN"] },
+  // Escala visível para todos: usuário comum vê o(s) próprio(s) setor(es) em
+  // modo somente leitura; configurador/admin editam.
+  { href: "/dashboard/escalas",       label: "Escalas da equipe",  icone: ICONES.schedule },
   { href: "/dashboard/modelos-horario",label: "Modelos de horário", icone: ICONES.model,    papeis: ["CONFIGURADOR_ESCALA","ADMIN"] },
 ];
 

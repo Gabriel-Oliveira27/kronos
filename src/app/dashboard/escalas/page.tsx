@@ -36,15 +36,9 @@ export default async function EscalasPage({
   const usuario = await usuarioAtual();
   if (!usuario) return null;
 
-  if (usuario.papel !== "CONFIGURADOR_ESCALA" && usuario.papel !== "ADMIN") {
-    return (
-      <div className="rounded-xl border border-slate-200 bg-white p-8 text-center dark:border-slate-800 dark:bg-slate-900">
-        <p className="text-sm text-slate-500 dark:text-slate-400">
-          Esta área é exclusiva do configurador de escala e de administradores.
-        </p>
-      </div>
-    );
-  }
+  // Todo usuário logado pode VER a escala do(s) próprio(s) setor(es); só o
+  // configurador e o admin podem editar/exportar.
+  const podeEditar = usuario.papel === "CONFIGURADOR_ESCALA" || usuario.papel === "ADMIN";
 
   const params = await searchParams;
   const hoje = new Date();
@@ -73,8 +67,8 @@ export default async function EscalasPage({
   const mesAnterior = moverMes(mesAtivo, -1);
   const mesSeguinte = moverMes(mesAtivo, 1);
 
-  // Recorte por setor: o configurador só vê/edita a escala dos próprios
-  // setores (multi-setor); o admin vê todos.
+  // Recorte por setor: o configurador e o usuário comum só veem a escala dos
+  // próprios setores (multi-setor); o admin vê todos.
   const ehAdmin = usuario.papel === "ADMIN";
   const meusSetores = usuario.setores.length > 0 ? usuario.setores : [usuario.setor];
   const filtroSetor = ehAdmin
@@ -117,6 +111,7 @@ export default async function EscalasPage({
           </h1>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
             {ehAdmin ? "Escala de todos os setores" : `Escala de ${meusSetores.join(", ")}`} — {usuarios.length} colaborador(es)
+            {!podeEditar && " · somente visualização"}
           </p>
         </div>
         <div className="flex gap-2">
@@ -142,6 +137,7 @@ export default async function EscalasPage({
         meusSetores={ehAdmin ? [] : meusSetores}
         setorTemPalavra={setorPrincipalTemPalavra}
         etiquetasPorSetorJson={JSON.parse(JSON.stringify(etiquetasPorSetor))}
+        somenteLeitura={!podeEditar}
       />
     </div>
   );
