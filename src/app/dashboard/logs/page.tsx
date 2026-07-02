@@ -14,6 +14,14 @@ const TIPOS_AUDITORIA = [
   "ESCALA_ALTERADA",
   "CONHECIMENTO_EXCLUIDO",
   "PONTO_EXCLUIDO",
+  "SETOR_CRIADO",
+  "SETOR_EDITADO",
+  "SETOR_EXCLUIDO",
+  "ESCALA_PALAVRA_DEFINIDA",
+  "MODELO_HORARIO_CRIADO",
+  "MODELO_HORARIO_EDITADO",
+  "MODELO_HORARIO_EXCLUIDO",
+  "CONFIG_APP_ALTERADA",
 ];
 
 // Acessos e erros — vão para a aba "Acessos & Erros".
@@ -36,6 +44,14 @@ const ROTULO_TIPO: Record<string, string> = {
   CONHECIMENTO_EXCLUIDO: "Conhecimento excluído",
   PONTO_EXCLUIDO: "Ponto excluído",
   REGISTRO_EXCLUIDO: "Registro excluído",
+  SETOR_CRIADO: "Setor criado",
+  SETOR_EDITADO: "Setor editado",
+  SETOR_EXCLUIDO: "Setor excluído",
+  ESCALA_PALAVRA_DEFINIDA: "Palavra secreta",
+  MODELO_HORARIO_CRIADO: "Modelo criado",
+  MODELO_HORARIO_EDITADO: "Modelo editado",
+  MODELO_HORARIO_EXCLUIDO: "Modelo excluído",
+  CONFIG_APP_ALTERADA: "Config. do app",
   LOGIN_SUCESSO: "Login",
   LOGIN_FALHA: "Falha de login",
   LOGOUT: "Logout",
@@ -54,6 +70,14 @@ const TOM_TIPO: Record<string, Tom> = {
   CONHECIMENTO_EXCLUIDO: "amber",
   PONTO_EXCLUIDO: "amber",
   REGISTRO_EXCLUIDO: "amber",
+  SETOR_CRIADO: "green",
+  SETOR_EDITADO: "blue",
+  SETOR_EXCLUIDO: "amber",
+  ESCALA_PALAVRA_DEFINIDA: "blue",
+  MODELO_HORARIO_CRIADO: "green",
+  MODELO_HORARIO_EDITADO: "blue",
+  MODELO_HORARIO_EXCLUIDO: "amber",
+  CONFIG_APP_ALTERADA: "blue",
   LOGIN_SUCESSO: "green",
   LOGIN_FALHA: "red",
   LOGOUT: "slate",
@@ -72,22 +96,46 @@ function descreverAuditoria(tipo: string, detalhe: unknown, nomePor: Record<stri
   const nome = (id: unknown) => nomePor[String(id)] ?? String(id ?? "");
   switch (tipo) {
     case "ACESSO_CRIADO":
-      return `${nome(d.usuarioCriadoId)} • papel ${ROTULOS_PAPEL[String(d.papel)] ?? d.papel}`;
-    case "ACESSO_EDITADO":
-      return `${nome(d.usuarioEditadoId)}${Array.isArray(d.campos) ? ` • campos: ${(d.campos as string[]).join(", ")}` : ""}`;
+      return `${String(d.usuarioCriadoNome ?? nome(d.usuarioCriadoId))} • acesso ${ROTULOS_PAPEL[String(d.papel)] ?? d.papel}`;
+    case "ACESSO_EDITADO": {
+      const quem = String(d.usuarioEditadoNome ?? nome(d.usuarioEditadoId));
+      const qtd = Array.isArray(d.diffs) ? d.diffs.length : 0;
+      return qtd > 0 ? `${quem} • ${qtd} campo(s) alterado(s)` : quem;
+    }
     case "SOLICITACAO_CRIADA":
       return String(d.nomeCompleto ?? "");
     case "SOLICITACAO_REJEITADA":
       return `solicitação ${d.solicitacaoId ?? ""}`;
     case "ESCALA_ALTERADA": {
+      if (Array.isArray(d.mudancas) && d.mudancas.length > 0) {
+        const ms = d.mudancas as { usuario: string }[];
+        const nomes = [...new Set(ms.map((m) => String(m.usuario).split(" ")[0]))];
+        const resumo = nomes.slice(0, 3).join(", ") + (nomes.length > 3 ? ` +${nomes.length - 3}` : "");
+        return `${ms.length} alteração(ões) • ${resumo}`;
+      }
       const alvo = nome(d.usuarioDestino);
       const acao = d.acao === "remocao" ? "remoção" : d.tipo ? (ROTULOS_TIPO_DIA[String(d.tipo)] ?? String(d.tipo)) : "";
       return `${alvo}${acao ? ` • ${acao}` : ""}`;
     }
     case "CONHECIMENTO_EXCLUIDO":
-      return `item ${d.itemId ?? ""}`;
+      return d.titulo ? `"${String(d.titulo)}"` : `item ${d.itemId ?? ""}`;
     case "PONTO_EXCLUIDO":
-      return `registro ${d.id ?? ""}`;
+      return d.data ? `batida de ${String(d.data).split("-").reverse().join("/")}` : `registro ${d.id ?? ""}`;
+    case "SETOR_CRIADO":
+    case "SETOR_EXCLUIDO":
+      return String(d.nome ?? "");
+    case "SETOR_EDITADO":
+      return d.acao === "etiquetas"
+        ? `${d.setor ?? ""} • etiquetas (${d.quantidade ?? "?"})`
+        : d.de && d.para ? `${d.de} → ${d.para}` : String(d.setor ?? "");
+    case "ESCALA_PALAVRA_DEFINIDA":
+      return `${d.setor ?? ""} • ${d.definida ? "definida" : "removida"}`;
+    case "MODELO_HORARIO_CRIADO":
+    case "MODELO_HORARIO_EDITADO":
+    case "MODELO_HORARIO_EXCLUIDO":
+      return String(d.nome ?? "");
+    case "CONFIG_APP_ALTERADA":
+      return "configuração global do app";
     default:
       return "";
   }
@@ -132,7 +180,7 @@ export default async function LogsPage() {
     // Exclusões (soft delete) só são auditáveis por administradores.
     ehAdmin
       ? prisma.registroExcluido.findMany({ orderBy: { excluidoEm: "desc" }, take: 150 })
-      : Promise.resolve([] as { id: string; tabelaOrigem: string; registroId: string; excluidoPorId: string; excluidoEm: Date }[]),
+      : Promise.resolve([] as Awaited<ReturnType<typeof prisma.registroExcluido.findMany>>),
   ]);
 
   // Resolve os nomes dos usuários referenciados nos detalhes / como autores.
@@ -155,29 +203,38 @@ export default async function LogsPage() {
   const auditoria: ItemLog[] = [
     ...auditLogs.map((l) => ({
       id: l.id,
+      tipo: l.tipo,
       rotulo: ROTULO_TIPO[l.tipo] ?? l.tipo,
       tom: TOM_TIPO[l.tipo] ?? "slate",
       descricao: descreverAuditoria(l.tipo, l.detalhe, nomePor),
       ator: l.usuario?.nomeCompleto ?? "Sistema",
       quando: l.criadoEm.toISOString(),
+      // O detalhe cru vai para o cliente: é ele que alimenta a expansão com a
+      // visão de antes/depois da alteração.
+      detalhe: l.detalhe ? JSON.parse(JSON.stringify(l.detalhe)) : undefined,
     })),
     ...registrosExcluidos.map((r) => ({
       id: `re_${r.id}`,
+      tipo: "REGISTRO_EXCLUIDO",
       rotulo: ROTULO_TIPO.REGISTRO_EXCLUIDO,
       tom: "amber" as Tom,
       descricao: `${r.tabelaOrigem} • registro ${r.registroId}`,
       ator: nomePor[r.excluidoPorId] ?? r.excluidoPorId,
       quando: r.excluidoEm.toISOString(),
+      // O payload guarda o registro como era antes de excluir.
+      detalhe: r.payload ? JSON.parse(JSON.stringify(r.payload)) : undefined,
     })),
   ].sort((a, b) => b.quando.localeCompare(a.quando));
 
   const sistema: ItemLog[] = sistemaLogs.map((l) => ({
     id: l.id,
+    tipo: l.tipo,
     rotulo: ROTULO_TIPO[l.tipo] ?? l.tipo,
     tom: TOM_TIPO[l.tipo] ?? "slate",
     descricao: descreverSistema(l.tipo, l.detalhe),
     ator: l.usuario?.nomeCompleto ?? "—",
     quando: l.criadoEm.toISOString(),
+    detalhe: l.detalhe ? JSON.parse(JSON.stringify(l.detalhe)) : undefined,
   }));
 
   return (

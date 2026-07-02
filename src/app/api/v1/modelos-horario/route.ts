@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { exigirPapel } from "@/lib/rbac";
 import { modeloHorarioSchema } from "@/lib/validations";
 import { comTratamentoDeErro } from "@/lib/api";
+import { registrarEvento } from "@/lib/log";
 
 export const GET = comTratamentoDeErro(async () => {
   await exigirPapel("CONFIGURADOR_ESCALA","ADMIN","SUPORTE");
@@ -24,6 +25,11 @@ export const POST = comTratamentoDeErro(async (request: NextRequest) => {
       configuracao: dados.configuracao ? JSON.parse(JSON.stringify(dados.configuracao)) : null,
       criadoPorId: usuario.id,
     },
+  });
+  await registrarEvento({
+    tipo: "MODELO_HORARIO_CRIADO",
+    usuarioId: usuario.id,
+    detalhe: { modeloId: modelo.id, nome: modelo.nome, horasSemanais: modelo.horasSemanais, jornadaDiaria: modelo.jornadaDiaria, jornadaPlantao: modelo.jornadaPlantao },
   });
   return NextResponse.json(modelo, { status: 201 });
 });

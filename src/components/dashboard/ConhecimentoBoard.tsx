@@ -51,6 +51,30 @@ const IcoLixeira = () => (
       stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
+const IcoLampada = () => (
+  <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4 shrink-0">
+    <path d="M12 18v-5.25m0 0a6.01 6.01 0 0 0 1.5-.189m-1.5.189a6.01 6.01 0 0 1-1.5-.189m3.75 7.478a12.06 12.06 0 0 1-4.5 0m3.75 2.383a14.406 14.406 0 0 1-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 1 0-7.517 0c.85.493 1.509 1.333 1.509 2.316V18"
+      stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+const IcoAlerta = () => (
+  <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4 shrink-0">
+    <path d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"
+      stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+const IcoSeta = ({ aberto }: { aberto: boolean }) => (
+  <svg viewBox="0 0 24 24" fill="none"
+    className={`h-4 w-4 shrink-0 text-slate-400 transition-transform duration-200 ${aberto ? "rotate-180" : ""}`}>
+    <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+/** Prévia do conteúdo: os primeiros 35 caracteres legíveis. */
+function previa(conteudo: string): string {
+  const plano = conteudo.replace(/\s+/g, " ").trim();
+  return plano.length > 35 ? plano.slice(0, 35) + "…" : plano;
+}
 
 export function ConhecimentoBoard({
   itensIniciais, usuarioId, isAdmin,
@@ -119,7 +143,10 @@ export function ConhecimentoBoard({
       {/* Orientação antes de criar */}
       {!criando && !editandoId && (
         <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900/40">
-          <p className="text-sm font-medium text-slate-700 dark:text-slate-300">💡 Como usar esta área</p>
+          <p className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300">
+            <span className="text-brand-blue"><IcoLampada /></span>
+            Como usar esta área
+          </p>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
             Armazene procedimentos, links importantes, processos pouco frequentes e informações úteis
             para consulta futura. Exemplos: acessos de e-mail, procedimentos fiscais, verificações técnicas
@@ -177,8 +204,9 @@ export function ConhecimentoBoard({
             </div>
             {/* Aviso ao escolher público */}
             {form.visibilidade === "PUBLICO" && (
-              <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300">
-                ⚠️ Todos os usuários terão acesso a este conteúdo. Não publique informações sensíveis ou desnecessárias.
+              <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300">
+                <span className="mt-0.5"><IcoAlerta /></span>
+                Todos os usuários terão acesso a este conteúdo. Não publique informações sensíveis ou desnecessárias.
               </div>
             )}
             {erro && <p className="text-sm text-danger">{erro}</p>}
@@ -196,73 +224,91 @@ export function ConhecimentoBoard({
         </Card>
       )}
 
-      {/* Lista de itens */}
-      <div className="grid items-start gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {/* Lista em acordeão: prévia de 35 caracteres; expandir empurra os
+          itens de baixo com animação (grid-rows 0fr → 1fr) */}
+      <Card className="p-0">
         {itensFiltrados.length === 0 && (
-          <p className="col-span-full py-8 text-center text-sm text-slate-500 dark:text-slate-400">
+          <p className="py-8 text-center text-sm text-slate-500 dark:text-slate-400">
             {busca ? "Nenhum resultado encontrado." : "Nenhum item ainda. Crie o primeiro!"}
           </p>
         )}
-        {itensFiltrados.map(item => (
-          <Card key={item.id} className={mostrando === item.id ? "sm:col-span-2 lg:col-span-3" : ""}>
-            <div className="flex items-start justify-between gap-3">
-              <button
-                onClick={() => setMostrando(m => m === item.id ? null : item.id)}
-                className="flex-1 text-left"
-              >
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span title={item.visibilidade === "PUBLICO" ? "Público" : "Privado"}
-                    className={item.visibilidade === "PUBLICO" ? "text-brand-blue" : "text-slate-400"}>
-                    {item.visibilidade === "PUBLICO" ? <IcoGlobo /> : <IcoCadeado />}
-                  </span>
-                  <p className="font-semibold text-slate-900 dark:text-white">{item.titulo}</p>
-                  {item.categoria && (
-                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-                      {item.categoria}
+        <ul className="divide-y divide-slate-100 dark:divide-slate-800/60">
+          {itensFiltrados.map(item => {
+            const aberto = mostrando === item.id;
+            return (
+              <li key={item.id}>
+                <div className="flex items-center justify-between gap-3 px-4 py-3">
+                  <button
+                    onClick={() => setMostrando(m => m === item.id ? null : item.id)}
+                    className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                  >
+                    <IcoSeta aberto={aberto} />
+                    <span title={item.visibilidade === "PUBLICO" ? "Público" : "Privado"}
+                      className={item.visibilidade === "PUBLICO" ? "text-brand-blue" : "text-slate-400"}>
+                      {item.visibilidade === "PUBLICO" ? <IcoGlobo /> : <IcoCadeado />}
                     </span>
-                  )}
-                  {isAdmin && item.autorId !== usuarioId && item.visibilidade === "PRIVADO" && (
-                    <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:bg-amber-500/15 dark:text-amber-300">
-                      privado de {item.autor.nomeCompleto.split(" ")[0]}
-                    </span>
-                  )}
-                </div>
-                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                  {item.autor.nomeCompleto} · {formatarDataHora(item.atualizadoEm)}
-                </p>
-              </button>
-
-              {podeEditar(item) && (
-                <div className="flex shrink-0 gap-1">
-                  <button onClick={() => iniciarEdicao(item)} title="Editar"
-                    className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200">
-                    <IcoLapis />
-                  </button>
-                  <button onClick={() => excluir(item.id)} title="Excluir"
-                    className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 hover:bg-red-50 hover:text-danger dark:hover:bg-red-950/30">
-                    <IcoLixeira />
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {mostrando === item.id && (
-              <div className="mt-3 border-t border-slate-100 pt-3 dark:border-slate-800">
-                <p className="whitespace-pre-wrap text-sm text-slate-700 dark:text-slate-300">{item.conteudo}</p>
-                {item.tags.length > 0 && (
-                  <div className="mt-3 flex flex-wrap gap-1.5">
-                    {item.tags.map(tag => (
-                      <span key={tag} className="rounded-full bg-brand-blue/10 px-2 py-0.5 text-[11px] font-medium text-brand-blue">
-                        #{tag}
+                    <span className="min-w-0">
+                      <span className="flex flex-wrap items-center gap-2">
+                        <span className="font-semibold text-slate-900 dark:text-white">{item.titulo}</span>
+                        {item.categoria && (
+                          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                            {item.categoria}
+                          </span>
+                        )}
+                        {isAdmin && item.autorId !== usuarioId && item.visibilidade === "PRIVADO" && (
+                          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:bg-amber-500/15 dark:text-amber-300">
+                            privado de {item.autor.nomeCompleto.split(" ")[0]}
+                          </span>
+                        )}
                       </span>
-                    ))}
+                      {/* Prévia de 35 caracteres quando fechado */}
+                      {!aberto && (
+                        <span className="mt-0.5 block truncate text-sm text-slate-500 dark:text-slate-400">
+                          {previa(item.conteudo)}
+                        </span>
+                      )}
+                      <span className="mt-0.5 block text-xs text-slate-400 dark:text-slate-500">
+                        {item.autor.nomeCompleto} · {formatarDataHora(item.atualizadoEm)}
+                      </span>
+                    </span>
+                  </button>
+
+                  {podeEditar(item) && (
+                    <div className="flex shrink-0 gap-1">
+                      <button onClick={() => iniciarEdicao(item)} title="Editar"
+                        className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200">
+                        <IcoLapis />
+                      </button>
+                      <button onClick={() => excluir(item.id)} title="Excluir"
+                        className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 hover:bg-red-50 hover:text-danger dark:hover:bg-red-950/30">
+                        <IcoLixeira />
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Conteúdo expansível com animação */}
+                <div className={`grid transition-[grid-template-rows] duration-300 ease-out ${aberto ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}>
+                  <div className="overflow-hidden">
+                    <div className="border-t border-slate-100 px-4 py-3 pl-14 dark:border-slate-800/60">
+                      <p className="whitespace-pre-wrap text-sm text-slate-700 dark:text-slate-300">{item.conteudo}</p>
+                      {item.tags.length > 0 && (
+                        <div className="mt-3 flex flex-wrap gap-1.5">
+                          {item.tags.map(tag => (
+                            <span key={tag} className="rounded-full bg-brand-blue/10 px-2 py-0.5 text-[11px] font-medium text-brand-blue">
+                              #{tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                )}
-              </div>
-            )}
-          </Card>
-        ))}
-      </div>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      </Card>
     </div>
   );
 }

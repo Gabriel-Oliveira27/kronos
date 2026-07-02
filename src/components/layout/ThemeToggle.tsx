@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from "react";
 
-type Tema = "claro" | "escuro" | "noturno";
+export type Tema = "claro" | "escuro" | "noturno";
 
-const TEMAS: { valor: Tema; label: string; icone: React.ReactNode }[] = [
+export const TEMAS: { valor: Tema; label: string; icone: React.ReactNode }[] = [
   {
     valor: "claro",
     label: "Claro",
@@ -38,7 +38,7 @@ const TEMAS: { valor: Tema; label: string; icone: React.ReactNode }[] = [
   },
 ];
 
-function aplicarTema(tema: Tema) {
+export function aplicarTema(tema: Tema) {
   const html = document.documentElement;
   html.dataset.tema = tema;
   html.dataset.temaExplicito = "1";

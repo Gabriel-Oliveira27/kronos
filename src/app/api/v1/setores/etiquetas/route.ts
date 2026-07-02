@@ -43,7 +43,14 @@ export const POST = comTratamentoDeErro(async (request: NextRequest) => {
   await registrarEvento({
     tipo: "SETOR_EDITADO",
     usuarioId: usuario.id,
-    detalhe: { setorId: setor.id, setor: setorNome, acao: "etiquetas", quantidade: etiquetas.length },
+    detalhe: {
+      setorId: setor.id,
+      setor: setorNome,
+      acao: "etiquetas",
+      quantidade: etiquetas.length,
+      antes: setor.etiquetas ?? "(padrão)",
+      depois: etiquetas,
+    },
   });
 
   return NextResponse.json({ ok: true, setor: setorNome, etiquetas });

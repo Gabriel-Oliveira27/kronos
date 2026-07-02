@@ -18,7 +18,7 @@ export const PUT = comTratamentoDeErro(async (request: NextRequest, { params }: 
     throw ApiError.semPermissao();
   }
 
-  const existente = await prisma.escalaDia.findUnique({ where: { id } });
+  const existente = await prisma.escalaDia.findUnique({ where: { id }, include: { usuario: { select: { nomeCompleto: true } } } });
   if (!existente) throw ApiError.naoEncontrado();
 
   const dados = escalaDiaAtualizarSchema.parse(await request.json());
@@ -33,7 +33,16 @@ export const PUT = comTratamentoDeErro(async (request: NextRequest, { params }: 
   await registrarEvento({
     tipo: "ESCALA_ALTERADA",
     usuarioId: usuario.id,
-    detalhe: { escalaId: id, usuarioDestino: existente.usuarioId },
+    detalhe: {
+      escalaId: id,
+      usuarioDestino: existente.usuarioId,
+      mudancas: [{
+        usuario: existente.usuario.nomeCompleto,
+        data: existente.data.toISOString().slice(0, 10),
+        antes: existente.tipo,
+        depois: dados.tipo ?? existente.tipo,
+      }],
+    },
   });
 
   return NextResponse.json(atualizado);
@@ -46,7 +55,7 @@ export const DELETE = comTratamentoDeErro(async (_request: NextRequest, { params
     throw ApiError.semPermissao();
   }
 
-  const existente = await prisma.escalaDia.findUnique({ where: { id } });
+  const existente = await prisma.escalaDia.findUnique({ where: { id }, include: { usuario: { select: { nomeCompleto: true } } } });
   if (!existente) throw ApiError.naoEncontrado();
 
   // EscalaDia não está na lista de soft-delete do briefing (essa regra vale
@@ -59,7 +68,17 @@ export const DELETE = comTratamentoDeErro(async (_request: NextRequest, { params
   await registrarEvento({
     tipo: "ESCALA_ALTERADA",
     usuarioId: usuario.id,
-    detalhe: { escalaId: id, usuarioDestino: existente.usuarioId, acao: "remocao" },
+    detalhe: {
+      escalaId: id,
+      usuarioDestino: existente.usuarioId,
+      acao: "remocao",
+      mudancas: [{
+        usuario: existente.usuario.nomeCompleto,
+        data: existente.data.toISOString().slice(0, 10),
+        antes: existente.tipo,
+        depois: null,
+      }],
+    },
   });
 
   return NextResponse.json({ ok: true });

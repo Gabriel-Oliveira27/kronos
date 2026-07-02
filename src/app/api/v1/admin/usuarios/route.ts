@@ -48,6 +48,6 @@ export const POST = comTratamentoDeErro(async (request: NextRequest) => {
     return [criado];
   });
   await registrarEvento({ tipo:"ACESSO_CRIADO", usuarioId:admin.id,
-    detalhe:{usuarioCriadoId:usuario.id,papel:usuario.papel} });
+    detalhe:{usuarioCriadoId:usuario.id, usuarioCriadoNome:usuario.nomeCompleto, papel:usuario.papel, setores} });
   return NextResponse.json(usuario, { status: 201 });
 });

@@ -1,17 +1,16 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { Button } from "@/components/ui/Button";
+import { useMemo, useState } from "react";
 
 // ── Helpers de tempo ──
-function parseHora(hhmm: string): number | null {
+export function parseHora(hhmm: string): number | null {
   if (!/^\d{1,2}:\d{2}$/.test(hhmm)) return null;
   const [h, m] = hhmm.split(":").map(Number);
   if (h > 23 || m > 59) return null;
   return h * 60 + m;
 }
 /** Aceita "8", "8:30" ou "8.5" e devolve minutos. */
-function parseDuracao(str: string): number | null {
+export function parseDuracao(str: string): number | null {
   const s = str.trim();
   if (!s) return null;
   if (s.includes(":")) {
@@ -23,7 +22,7 @@ function parseDuracao(str: string): number | null {
   if (Number.isNaN(n)) return null;
   return Math.round(n * 60);
 }
-function fmtDur(min: number): string {
+export function fmtDur(min: number): string {
   const s = min < 0 ? "-" : "";
   const a = Math.abs(min);
   const h = Math.floor(a / 60);
@@ -31,7 +30,7 @@ function fmtDur(min: number): string {
   if (h === 0) return `${s}${m}min`;
   return `${s}${h}h${m ? String(m).padStart(2, "0") : ""}`;
 }
-function minParaHHMM(min: number): string {
+export function minParaHHMM(min: number): string {
   const total = ((min % 1440) + 1440) % 1440;
   return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
 }
@@ -65,7 +64,7 @@ function SeletorMeta({ metaTexto, setMetaTexto }: { metaTexto: string; setMetaTe
   );
 }
 
-/** Grupo de escolha simples (radio estilizado) para o questionário. */
+/** Grupo de escolha simples (radio estilizado). */
 function Escolha<T extends string>({
   label, valor, onChange, opcoes,
 }: {
@@ -94,7 +93,7 @@ function Escolha<T extends string>({
 }
 
 // ── Modo 1: calcular horas a partir das batidas ──
-function ModoCalcular() {
+export function ModoCalcular() {
   const [entrada, setEntrada] = useState("");
   const [saidaAlmoco, setSaidaAlmoco] = useState("");
   const [voltaAlmoco, setVoltaAlmoco] = useState("");
@@ -155,7 +154,7 @@ function ModoCalcular() {
 type PrefSaida = "mais_cedo" | "mais_tarde" | "tanto_faz";
 type PrefAlmoco = "sim" | "nao";
 
-function ModoSimular() {
+export function ModoSimular() {
   const [entrada, setEntrada] = useState("");
   const [saida, setSaida] = useState("");
   const [metaTexto, setMetaTexto] = useState("8:00");
@@ -172,7 +171,6 @@ function ModoSimular() {
     const saidaIdeal = ent + meta + almoco;
     const fim = parseHora(saida);
 
-    // Sem saída informada: só mostra o horário ideal.
     if (fim === null) return { saidaIdeal, meta, almoco, plano: null as null | { principal: string; alternativas: string[]; dif: number } };
 
     const trabalhado = fim - ent - almoco;
@@ -185,7 +183,6 @@ function ModoSimular() {
     const opcoes: { chave: string; texto: string }[] = [];
     if (dif < 0) {
       const falta = -dif;
-      // Monta as opções e escolhe a principal conforme as preferências.
       const podeCortarAlmoco = almoco > 60;
       const corte = podeCortarAlmoco ? Math.min(falta, almoco - 60) : 0;
 
@@ -217,7 +214,6 @@ function ModoSimular() {
       return { saidaIdeal, meta, almoco, plano: { principal: `Faltam ${fmtDur(falta)}. ${principal.texto}`, alternativas: alternativas.map((o) => o.texto), dif } };
     }
 
-    // Excedente
     const sobra = dif;
     const principal = prefSaida === "mais_tarde"
       ? `Você fará ${fmtDur(sobra)} além da meta. Pode entrar mais tarde: às ${minParaHHMM(ent + sobra)}.`
@@ -237,7 +233,6 @@ function ModoSimular() {
         <div className="col-span-2"><SeletorMeta metaTexto={metaTexto} setMetaTexto={setMetaTexto} /></div>
       </div>
 
-      {/* Questionário de preferências — direciona a recomendação */}
       <div className="grid gap-3 rounded-xl bg-slate-50 p-3 dark:bg-slate-800/40 sm:grid-cols-2">
         <Escolha
           label="Prefere ajustar como?"
@@ -262,7 +257,6 @@ function ModoSimular() {
 
       {analise && (
         <div className="flex flex-col gap-3">
-          {/* Horário ideal — sempre visível e destacado */}
           <div className="rounded-xl border-2 border-brand-blue/30 bg-brand-blue/5 p-4 dark:bg-brand-blue/10">
             <p className="text-sm text-slate-500 dark:text-slate-400">
               Para {fmtDur(analise.meta)} de trabalho com {fmtDur(analise.almoco)} de almoço, saia às
@@ -270,7 +264,6 @@ function ModoSimular() {
             <p className="font-display text-4xl font-semibold text-brand-blue">{minParaHHMM(analise.saidaIdeal)}</p>
           </div>
 
-          {/* Recomendação conforme a saída desejada + preferências */}
           {analise.plano && (
             <div className={`rounded-xl border p-4 ${
               analise.plano.dif === 0
@@ -296,66 +289,235 @@ function ModoSimular() {
   );
 }
 
-export function CalculadoraHoras({ variante = "link" }: { variante?: "link" | "botao" }) {
-  const [aberto, setAberto] = useState(false);
-  const [aba, setAba] = useState<"calcular" | "simular">("calcular");
+// ── Modo 3: horas em débito ──
+type ModoPagamento = "dias" | "extra" | "sugerir";
 
-  // Trava o scroll da página enquanto o modal está aberto.
-  useEffect(() => {
-    if (!aberto) return;
-    const anterior = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = anterior; };
-  }, [aberto]);
+/** Distribui um extra diário entre entrada/saída/almoço conforme preferências. */
+function comoDistribuir(extraMin: number, almoco: number, prefSaida: PrefSaida, prefAlmoco: PrefAlmoco): string[] {
+  const formas: string[] = [];
+  const margemAlmoco = Math.max(0, almoco - 60);
+
+  if (prefAlmoco === "sim" && margemAlmoco > 0) {
+    const corte = Math.min(extraMin, margemAlmoco);
+    if (corte >= extraMin) {
+      formas.push(`Reduza o almoço em ${fmtDur(extraMin)} (fica com ${fmtDur(almoco - extraMin)}) — sem mudar entrada nem saída.`);
+    } else {
+      const resto = extraMin - corte;
+      formas.push(
+        prefSaida === "mais_cedo"
+          ? `Reduza o almoço para 1h e entre ${fmtDur(resto)} mais cedo.`
+          : `Reduza o almoço para 1h e saia ${fmtDur(resto)} mais tarde.`
+      );
+    }
+  }
+
+  if (prefSaida === "mais_cedo") {
+    formas.push(`Entre ${fmtDur(extraMin)} mais cedo todos os dias.`);
+  } else if (prefSaida === "mais_tarde") {
+    formas.push(`Saia ${fmtDur(extraMin)} mais tarde todos os dias.`);
+  } else {
+    const metade = Math.floor(extraMin / 2);
+    if (metade > 0) formas.push(`Divida: entre ${fmtDur(extraMin - metade)} mais cedo e saia ${fmtDur(metade)} mais tarde.`);
+    formas.push(`Ou concentre tudo num lado: ${fmtDur(extraMin)} mais cedo na entrada, ou ${fmtDur(extraMin)} a mais na saída.`);
+  }
+
+  if (prefAlmoco === "nao" && margemAlmoco > 0) {
+    formas.push(`Se mudar de ideia, dá para tirar até ${fmtDur(margemAlmoco)} do almoço por dia.`);
+  }
+
+  return formas;
+}
+
+/** Data (dd/mm) após N dias úteis a partir de hoje. */
+function dataAposDiasUteis(diasUteis: number): string {
+  const d = new Date();
+  let restantes = diasUteis;
+  while (restantes > 0) {
+    d.setDate(d.getDate() + 1);
+    const dow = d.getDay();
+    if (dow !== 0 && dow !== 6) restantes--;
+  }
+  return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+}
+
+export function ModoDebito() {
+  const [debitoTexto, setDebitoTexto] = useState("");
+  const [modo, setModo] = useState<ModoPagamento>("sugerir");
+  const [diasTexto, setDiasTexto] = useState("5");
+  const [extraTexto, setExtraTexto] = useState("1:00");
+  const [almocoTexto, setAlmocoTexto] = useState("60");
+  const [prefSaida, setPrefSaida] = useState<PrefSaida>("tanto_faz");
+  const [prefAlmoco, setPrefAlmoco] = useState<PrefAlmoco>("nao");
+
+  const analise = useMemo(() => {
+    const debito = parseDuracao(debitoTexto);
+    if (debito === null || debito <= 0) return null;
+    const almoco = Number(almocoTexto.replace(",", ".")) || 0;
+
+    if (modo === "dias") {
+      const dias = Math.max(1, Math.floor(Number(diasTexto) || 0));
+      if (!dias) return null;
+      const extraDia = Math.ceil(debito / dias);
+      return {
+        tipo: "plano" as const,
+        titulo: `${fmtDur(extraDia)} a mais por dia, durante ${dias} dia(s) útil(eis)`,
+        subtitulo: `Débito de ${fmtDur(debito)} quitado até ~${dataAposDiasUteis(dias)}.`,
+        alerta: extraDia > 120 ? `Atenção: ${fmtDur(extraDia)}/dia passa de 2h de extra — considere mais dias.` : null,
+        formas: comoDistribuir(extraDia, almoco, prefSaida, prefAlmoco),
+      };
+    }
+
+    if (modo === "extra") {
+      const extraDia = parseDuracao(extraTexto);
+      if (extraDia === null || extraDia <= 0) return null;
+      const dias = Math.ceil(debito / extraDia);
+      return {
+        tipo: "plano" as const,
+        titulo: `Quitação em ${dias} dia(s) útil(eis)`,
+        subtitulo: `Fazendo ${fmtDur(extraDia)} a mais por dia, você quita ${fmtDur(debito)} até ~${dataAposDiasUteis(dias)}.`,
+        alerta: extraDia > 120 ? `Atenção: ${fmtDur(extraDia)}/dia passa de 2h de extra por dia.` : null,
+        formas: comoDistribuir(extraDia, almoco, prefSaida, prefAlmoco),
+      };
+    }
+
+    // Sugerir: cenários prontos, com um recomendado (~1h/dia ou o que couber em até 2h).
+    const cenarios = [30, 45, 60, 90, 120]
+      .filter((extra) => extra <= debito || extra === 30)
+      .map((extra) => ({
+        extra,
+        dias: Math.ceil(debito / extra),
+      }));
+    const recomendado = cenarios.find((c) => c.extra === 60) ?? cenarios[Math.floor(cenarios.length / 2)];
+    return {
+      tipo: "cenarios" as const,
+      debito,
+      cenarios,
+      recomendado,
+      formas: recomendado ? comoDistribuir(recomendado.extra, almoco, prefSaida, prefAlmoco) : [],
+    };
+  }, [debitoTexto, modo, diasTexto, extraTexto, almocoTexto, prefSaida, prefAlmoco]);
 
   return (
-    <>
-      {variante === "link" ? (
-        <button
-          onClick={() => setAberto(true)}
-          className="text-sm font-medium text-slate-600 transition-colors hover:text-brand-blue dark:text-slate-400 dark:hover:text-white"
-        >
-          Calculadora de horas
-        </button>
-      ) : (
-        <Button size="lg" onClick={() => setAberto(true)}>
-          Abrir calculadora
-        </Button>
+    <div className="flex flex-col gap-4">
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className={ROTULO}>Horas em débito</label>
+          <input type="text" placeholder="Ex.: 10 ou 10:30" value={debitoTexto} onChange={(e) => setDebitoTexto(e.target.value)} className={CAMPO} />
+        </div>
+        <div><label className={ROTULO}>Almoço atual (minutos)</label><input type="number" min={0} value={almocoTexto} onChange={(e) => setAlmocoTexto(e.target.value)} className={CAMPO} /></div>
+      </div>
+
+      <Escolha
+        label="Como quer pagar?"
+        valor={modo}
+        onChange={setModo}
+        opcoes={[
+          { valor: "sugerir", rotulo: "Sugerir para mim" },
+          { valor: "dias", rotulo: "Definir em quantos dias" },
+          { valor: "extra", rotulo: "Definir extra por dia" },
+        ]}
+      />
+
+      {modo === "dias" && (
+        <div className="w-40">
+          <label className={ROTULO}>Pagar em (dias úteis)</label>
+          <input type="number" min={1} value={diasTexto} onChange={(e) => setDiasTexto(e.target.value)} className={CAMPO} />
+        </div>
+      )}
+      {modo === "extra" && (
+        <div className="w-40">
+          <label className={ROTULO}>Extra por dia</label>
+          <input type="text" placeholder="Ex.: 1:00" value={extraTexto} onChange={(e) => setExtraTexto(e.target.value)} className={CAMPO} />
+        </div>
       )}
 
-      {aberto && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={() => setAberto(false)} />
-          <div className="relative flex max-h-[90vh] w-full max-w-lg flex-col rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-900">
-            <div className="flex items-start justify-between border-b border-slate-200 p-6 pb-4 dark:border-slate-800">
-              <div>
-                <h2 className="font-display text-lg font-semibold text-slate-900 dark:text-white">Calculadora de horas</h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Some suas batidas ou simule quando sair para bater a meta.</p>
-              </div>
-              <button onClick={() => setAberto(false)} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800" aria-label="Fechar">
-                <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" /></svg>
-              </button>
-            </div>
+      <div className="grid gap-3 rounded-xl bg-slate-50 p-3 dark:bg-slate-800/40 sm:grid-cols-2">
+        <Escolha
+          label="Prefere ajustar como?"
+          valor={prefSaida}
+          onChange={setPrefSaida}
+          opcoes={[
+            { valor: "mais_cedo", rotulo: "Entrar mais cedo" },
+            { valor: "mais_tarde", rotulo: "Sair mais tarde" },
+            { valor: "tanto_faz", rotulo: "Tanto faz" },
+          ]}
+        />
+        <Escolha
+          label="Pode reduzir o almoço?"
+          valor={prefAlmoco}
+          onChange={setPrefAlmoco}
+          opcoes={[
+            { valor: "sim", rotulo: "Sim" },
+            { valor: "nao", rotulo: "Prefiro não" },
+          ]}
+        />
+      </div>
 
-            <div className="flex-1 overflow-y-auto p-6 pt-4">
-              <div className="mb-4 flex gap-1 rounded-lg bg-slate-100 p-1 dark:bg-slate-800">
-                {([["calcular", "Calcular horas"], ["simular", "Simular batidas"]] as const).map(([id, label]) => (
-                  <button key={id} onClick={() => setAba(id)}
-                    className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${aba === id ? "bg-white text-brand-blue shadow-sm dark:bg-slate-900" : "text-slate-500 dark:text-slate-400"}`}>
-                    {label}
-                  </button>
+      {analise?.tipo === "cenarios" && (
+        <div className="flex flex-col gap-3">
+          <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700">
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-800/60 dark:text-slate-400">
+                <tr>
+                  <th className="px-4 py-2.5 text-left">Extra por dia</th>
+                  <th className="px-4 py-2.5 text-left">Dias úteis</th>
+                  <th className="px-4 py-2.5 text-left">Quitação (~)</th>
+                  <th className="px-4 py-2.5 text-left"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {analise.cenarios.map((c) => (
+                  <tr key={c.extra} className={`border-t border-slate-100 dark:border-slate-800 ${c === analise.recomendado ? "bg-brand-blue/5 dark:bg-brand-blue/10" : ""}`}>
+                    <td className="px-4 py-2.5 font-semibold text-slate-800 dark:text-slate-100">{fmtDur(c.extra)}</td>
+                    <td className="px-4 py-2.5 text-slate-600 dark:text-slate-300">{c.dias} dia(s)</td>
+                    <td className="px-4 py-2.5 text-slate-600 dark:text-slate-300">{dataAposDiasUteis(c.dias)}</td>
+                    <td className="px-4 py-2.5">
+                      {c === analise.recomendado && (
+                        <span className="rounded-full bg-brand-blue px-2 py-0.5 text-[10px] font-bold text-white">RECOMENDADO</span>
+                      )}
+                    </td>
+                  </tr>
                 ))}
-              </div>
-
-              {aba === "calcular" ? <ModoCalcular /> : <ModoSimular />}
+              </tbody>
+            </table>
+          </div>
+          {analise.recomendado && (
+            <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                Como pagar {fmtDur(analise.recomendado.extra)} por dia
+              </p>
+              <ul className="mt-2 flex flex-col gap-1 text-sm text-slate-600 dark:text-slate-300">
+                {analise.formas.map((f, i) => (
+                  <li key={i} className="flex gap-2"><span className="text-brand-blue">•</span>{f}</li>
+                ))}
+              </ul>
             </div>
+          )}
+        </div>
+      )}
 
-            <div className="flex justify-end border-t border-slate-200 p-4 dark:border-slate-800">
-              <Button variant="ghost" onClick={() => setAberto(false)}>Fechar</Button>
-            </div>
+      {analise?.tipo === "plano" && (
+        <div className="flex flex-col gap-3">
+          <div className="rounded-xl border-2 border-brand-blue/30 bg-brand-blue/5 p-4 dark:bg-brand-blue/10">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Plano de pagamento</p>
+            <p className="font-display text-2xl font-semibold text-brand-blue">{analise.titulo}</p>
+            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{analise.subtitulo}</p>
+            {analise.alerta && <p className="mt-2 text-sm font-medium text-amber-600 dark:text-amber-400">{analise.alerta}</p>}
+          </div>
+          <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Formas de encaixar no dia</p>
+            <ul className="mt-2 flex flex-col gap-1 text-sm text-slate-600 dark:text-slate-300">
+              {analise.formas.map((f, i) => (
+                <li key={i} className="flex gap-2"><span className="text-brand-blue">•</span>{f}</li>
+              ))}
+            </ul>
           </div>
         </div>
       )}
-    </>
+
+      {!analise && debitoTexto.trim() !== "" && (
+        <p className="text-sm text-slate-400 dark:text-slate-500">Informe o débito como “10”, “10:30” ou “10.5”.</p>
+      )}
+    </div>
   );
 }

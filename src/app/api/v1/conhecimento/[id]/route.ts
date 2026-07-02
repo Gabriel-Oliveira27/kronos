@@ -31,11 +31,19 @@ export const PUT = comTratamentoDeErro(async (request: NextRequest, { params }: 
 export const DELETE = comTratamentoDeErro(async (_req: NextRequest, { params }: Params) => {
   const { id } = await params;
   const usuario = await exigirUsuario();
-  await verificarAcesso(id, usuario.id, usuario.papel);
+  const item = await verificarAcesso(id, usuario.id, usuario.papel);
   await prisma.conhecimentoItem.update({ where: { id }, data: { deletadoEm: new Date() } });
+  // Snapshot do que foi excluído — a auditoria mostra o conteúdo que sumiu.
   await registrarEvento({
     tipo: "CONHECIMENTO_EXCLUIDO", usuarioId: usuario.id,
-    detalhe: { itemId: id },
+    detalhe: {
+      itemId: id,
+      titulo: item.titulo,
+      conteudo: item.conteudo.slice(0, 2000),
+      categoria: item.categoria,
+      visibilidade: item.visibilidade,
+      tags: item.tags,
+    },
   });
   return NextResponse.json({ ok: true });
 });
