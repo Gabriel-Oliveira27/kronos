@@ -33,7 +33,7 @@ export const POST = comTratamentoDeErro(async (request: NextRequest) => {
     const idsAlvo = [...new Set(alteracoes.map((a) => a.usuarioId))];
     const alvos = await prisma.usuario.findMany({
       where: { id: { in: idsAlvo } },
-      select: { id: true, setor: true, setores: true },
+      select: { id: true, nomeCompleto: true, setor: true, setores: true },
     });
     const mapaAlvo = new Map(alvos.map((u) => [u.id, u]));
 
@@ -49,14 +49,22 @@ export const POST = comTratamentoDeErro(async (request: NextRequest) => {
     }
 
     // Aplica tudo numa transação. Cada (usuário, dia) tem um único tipo final,
-    // então basta upsert-por-dia ou remoção.
+    // então basta upsert-por-dia ou remoção. Guarda antes/depois de cada
+    // mudança para a trilha de auditoria.
+    const mudancas: { usuario: string; data: string; antes: string | null; depois: string | null }[] = [];
     await prisma.$transaction(async (tx) => {
       for (const alt of alteracoes) {
         const existente = await tx.escalaDia.findFirst({
           where: { usuarioId: alt.usuarioId, data: { gte: inicioDoDia(alt.data), lte: fimDoDia(alt.data) } },
         });
+        const nomeAlvo = mapaAlvo.get(alt.usuarioId)?.nomeCompleto ?? alt.usuarioId;
+        const dataISO = alt.data.toISOString().slice(0, 10);
+
         if (alt.tipo === null) {
-          if (existente) await tx.escalaDia.delete({ where: { id: existente.id } });
+          if (existente) {
+            await tx.escalaDia.delete({ where: { id: existente.id } });
+            mudancas.push({ usuario: nomeAlvo, data: dataISO, antes: existente.tipo, depois: null });
+          }
           continue;
         }
         if (existente) {
@@ -64,6 +72,9 @@ export const POST = comTratamentoDeErro(async (request: NextRequest) => {
             where: { id: existente.id },
             data: { tipo: alt.tipo, etiquetaId: alt.etiquetaId ?? null },
           });
+          if (existente.tipo !== alt.tipo) {
+            mudancas.push({ usuario: nomeAlvo, data: dataISO, antes: existente.tipo, depois: alt.tipo });
+          }
         } else {
           await tx.escalaDia.create({
             data: {
@@ -74,6 +85,7 @@ export const POST = comTratamentoDeErro(async (request: NextRequest) => {
               criadoPorId: usuario.id,
             },
           });
+          mudancas.push({ usuario: nomeAlvo, data: dataISO, antes: null, depois: alt.tipo });
         }
       }
     });
@@ -81,7 +93,14 @@ export const POST = comTratamentoDeErro(async (request: NextRequest) => {
     await registrarEvento({
       tipo: "ESCALA_ALTERADA",
       usuarioId: usuario.id,
-      detalhe: { mes, quantidade: alteracoes.length, acao: "bulk" },
+      detalhe: {
+        mes,
+        quantidade: mudancas.length,
+        acao: "bulk",
+        // Cap defensivo: o detalhe é JSON no banco — 300 linhas cobrem um mês
+        // inteiro de edição sem deixar o log gigante.
+        mudancas: mudancas.slice(0, 300),
+      },
     });
   }
 

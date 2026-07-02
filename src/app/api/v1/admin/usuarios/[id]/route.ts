@@ -38,7 +38,26 @@ export const PUT = comTratamentoDeErro(async (request: NextRequest, { params }: 
     },
     select: SELECT,
   });
+  // Trilha de auditoria: diff campo a campo (antes → depois), sem senha.
+  const diffs: { campo: string; antes: unknown; depois: unknown }[] = [];
+  const comparar = (campo: string, antes: unknown, depois: unknown) => {
+    if (depois !== undefined && JSON.stringify(antes) !== JSON.stringify(depois)) {
+      diffs.push({ campo, antes: antes ?? null, depois: depois ?? null });
+    }
+  };
+  comparar("nomeCompleto", existente.nomeCompleto, dados.nomeCompleto);
+  comparar("setores", existente.setores.length ? existente.setores : [existente.setor], setores);
+  comparar("email", existente.email, dados.email !== undefined ? (dados.email || null) : undefined);
+  comparar("papel", existente.papel, dados.papel);
+  comparar("temApp", existente.temApp, dados.temApp);
+  comparar("ativo", existente.ativo, dados.ativo);
+  comparar("modeloHorarioId", existente.modeloHorarioId, dados.modeloHorarioId !== undefined ? (dados.modeloHorarioId || null) : undefined);
+  if (dados.novaSenha) diffs.push({ campo: "senha", antes: "•••", depois: "(alterada)" });
+  if (dados.fotoUrl !== undefined && (dados.fotoUrl || null) !== existente.fotoUrl) {
+    diffs.push({ campo: "foto", antes: existente.fotoUrl ? "(tinha)" : null, depois: dados.fotoUrl ? "(nova)" : null });
+  }
+
   await registrarEvento({ tipo:"ACESSO_EDITADO", usuarioId:admin.id,
-    detalhe:{ usuarioEditadoId:id, campos:Object.keys(dados), ativo:dados.ativo } });
+    detalhe:{ usuarioEditadoId:id, usuarioEditadoNome: existente.nomeCompleto, campos:Object.keys(dados), diffs } });
   return NextResponse.json(atualizado);
 });

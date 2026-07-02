@@ -28,7 +28,10 @@ export type TipoLog =
   | "ESCALA_PALAVRA_DEFINIDA"
   | "SETOR_CRIADO"
   | "SETOR_EDITADO"
-  | "SETOR_EXCLUIDO";
+  | "SETOR_EXCLUIDO"
+  | "MODELO_HORARIO_CRIADO"
+  | "MODELO_HORARIO_EDITADO"
+  | "MODELO_HORARIO_EXCLUIDO";
 
 interface RegistrarEventoInput {
   tipo: TipoLog;

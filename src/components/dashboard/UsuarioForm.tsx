@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, forwardRef, useImperativeHandle } from "react";
 import { Input } from "@/components/ui/Input";
+import { Select } from "@/components/ui/Field";
 import { Button } from "@/components/ui/Button";
 import { SeletorChip, type OpcaoChip } from "@/components/ui/SeletorChip";
 import { OPCOES_ACESSO } from "@/lib/utils";
@@ -242,14 +243,17 @@ export const UsuarioForm = forwardRef<UsuarioFormHandle, UsuarioFormProps>(funct
           value={senha}
           onChange={(e) => setSenha(e.target.value)}
         />
-        <SeletorChip
+        <Select
           label="Acesso"
           value={valores.papel}
-          onChange={(v) => setValores({ ...valores, papel: (v || "USUARIO") as Papel })}
-          opcoes={OPCOES_ACESSO}
-          placeholder="Selecionar acesso…"
-          chipClassName="bg-brand-blue/10 text-brand-blue ring-1 ring-brand-blue/30"
-        />
+          onChange={(e) => setValores({ ...valores, papel: e.target.value as Papel })}
+        >
+          {OPCOES_ACESSO.map((o) => (
+            <option key={o.value} value={o.value}>{o.label}</option>
+          ))}
+          {/* Legado: usuários antigos com papel Suporte continuam selecionáveis */}
+          {valores.papel === "SUPORTE" && <option value="SUPORTE">Suporte (legado)</option>}
+        </Select>
       </div>
 
       {/* Linha 3: Modelo de horário | Usa aplicativo */}

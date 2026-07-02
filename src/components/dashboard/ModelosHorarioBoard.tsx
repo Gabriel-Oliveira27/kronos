@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { cn } from "@/lib/utils";
+import { formatarJornada } from "@/lib/escala";
 
 interface Aviso { hora: string; mensagem: string; dias?: string[] }
 interface ConfiguracaoDias { seg?:number;ter?:number;qua?:number;qui?:number;sex?:number;sab?:number;dom?:number }
@@ -76,7 +77,7 @@ function FormModelo({ inicial, onSalvar, onCancelar }: {
         <Input label="Jornada diária (h)" type="number" value={jornadaDiaria} onChange={e => setJornadaDiaria(e.target.value)} />
         <Input label="Semana de plantão (h/dia)" type="number" step="0.5" value={jornadaPlantao}
           onChange={e => setJornadaPlantao(e.target.value)}
-          hint="Jornada na semana que antecede o plantão. 7.5 = 7h30." />
+          hint={`Jornada na semana que antecede o plantão${Number(jornadaPlantao) ? ` — será exibida como ${formatarJornada(Number(jornadaPlantao))}` : ""}.`} />
       </div>
 
       <div>
@@ -219,9 +220,9 @@ export function ModelosHorarioBoard({ modelosIniciais }: { modelosIniciais: Mode
                   </div>
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2">
-                  <span className="rounded-full bg-brand-blue/10 px-2.5 py-0.5 text-xs font-medium text-brand-blue">{m.horasSemanais}h/semana</span>
-                  <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">{m.jornadaDiaria}h/dia</span>
-                  <span className="rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-medium text-purple-700 dark:bg-purple-950 dark:text-purple-300">plantão: {m.jornadaPlantao ?? 7.5}h/dia</span>
+                  <span className="rounded-full bg-brand-blue/10 px-2.5 py-0.5 text-xs font-medium text-brand-blue">{formatarJornada(m.horasSemanais)}/semana</span>
+                  <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">{formatarJornada(m.jornadaDiaria)}/dia</span>
+                  <span className="rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-medium text-purple-700 dark:bg-purple-950 dark:text-purple-300">plantão: {formatarJornada(m.jornadaPlantao ?? 7.5)}/dia</span>
                   <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">{m._count.usuarios} usuário(s)</span>
                 </div>
                 {m.configuracao?.avisos && m.configuracao.avisos.length > 0 && (

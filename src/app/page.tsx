@@ -1,9 +1,8 @@
 import Link from "next/link";
 import { Logo } from "@/components/ui/Logo";
 import { Button } from "@/components/ui/Button";
-import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { HeroMockup } from "@/components/marketing/HeroMockup";
-import { CalculadoraHoras } from "@/components/marketing/CalculadoraHoras";
+import { MenuServicos, MenuAparencia } from "@/components/marketing/NavMenus";
 
 // Ícones simples e discretos para as características do produto (hero).
 const iconeRecurso = (d: string) => (
@@ -58,37 +57,36 @@ const PASSOS = [
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-white dark:bg-[#0B1220]">
-      {/* Header */}
+      {/* Header — mais alto e com a marca em destaque */}
       <header className="border-b border-slate-200 dark:border-slate-800/70">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <Logo withIcon={false} wordmarkClassName="text-2xl text-brand-blue" />
-          <nav className="flex items-center gap-2 sm:gap-3">
-            <span className="hidden sm:inline">
-              <CalculadoraHoras />
-            </span>
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-8">
+          <Logo withIcon={false} wordmarkClassName="text-3xl text-brand-blue sm:text-4xl" />
+          {/* Da direita para a esquerda: Solicitar acesso, Entrar, Ver escala, Serviços, Aparência */}
+          <nav className="flex items-center gap-1 sm:gap-2">
+            <span className="hidden sm:inline-flex"><MenuAparencia /></span>
+            <MenuServicos />
             <Link
               href="/escala"
-              className="hidden text-sm font-medium text-slate-600 transition-colors hover:text-slate-900 dark:text-slate-400 dark:hover:text-white sm:inline"
+              className="hidden px-2.5 py-2 text-sm font-medium text-slate-600 transition-colors hover:text-slate-900 dark:text-slate-400 dark:hover:text-white sm:inline"
             >
               Ver escala
             </Link>
             <Link
               href="/login"
-              className="text-sm font-medium text-slate-600 transition-colors hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
+              className="px-2.5 py-2 text-sm font-medium text-slate-600 transition-colors hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
             >
               Entrar
             </Link>
             <Link href="/solicitar-acesso">
               <Button size="sm">Solicitar acesso</Button>
             </Link>
-            <ThemeToggle />
           </nav>
         </div>
       </header>
 
       <main>
-        {/* Hero */}
-        <section className="mx-auto grid max-w-6xl gap-10 overflow-hidden px-6 py-16 sm:py-24 lg:grid-cols-2 lg:items-center">
+        {/* Hero — texto maior e mais à esquerda, mockup à direita */}
+        <section className="mx-auto grid max-w-7xl gap-10 overflow-hidden px-6 py-16 sm:py-24 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
           {/* Texto */}
           <div>
             {/* Pílula de destaque */}
@@ -99,11 +97,11 @@ export default function LandingPage() {
               </span>
             </div>
 
-            <h1 className="font-display text-4xl font-semibold leading-tight tracking-tight text-slate-900 dark:text-white sm:text-5xl">
+            <h1 className="font-display text-5xl font-semibold leading-[1.08] tracking-tight text-slate-900 dark:text-white sm:text-6xl">
               Organize a jornada da sua equipe sem complicação.
             </h1>
 
-            <p className="mt-5 max-w-md text-base leading-relaxed text-slate-600 dark:text-slate-400">
+            <p className="mt-6 max-w-xl text-lg leading-relaxed text-slate-600 dark:text-slate-400">
               Gerencie escalas, usuários e registros de ponto em um único painel. Tudo sincronizado
               com o aplicativo utilizado pelos colaboradores.
             </p>
@@ -119,12 +117,12 @@ export default function LandingPage() {
               </Link>
             </div>
 
-            {/* Características do produto — funcionalidades, não métricas */}
-            <div className="mt-10 grid grid-cols-1 gap-x-8 gap-y-4 border-t border-slate-200 pt-8 dark:border-slate-800 sm:grid-cols-2">
+            {/* Características do produto — 4 em linha, funcionalidades, não métricas */}
+            <div className="mt-10 grid grid-cols-2 gap-x-6 gap-y-4 border-t border-slate-200 pt-8 dark:border-slate-800 sm:grid-cols-4">
               {CARACTERISTICAS.map((c) => (
-                <div key={c.titulo} className="flex items-center gap-3">
+                <div key={c.titulo} className="flex flex-col items-start gap-2.5">
                   <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-brand-blue/10">{c.icone}</span>
-                  <span className="text-sm font-medium text-slate-700 dark:text-slate-200">{c.titulo}</span>
+                  <span className="text-sm font-medium leading-snug text-slate-700 dark:text-slate-200">{c.titulo}</span>
                 </div>
               ))}
             </div>
@@ -149,14 +147,16 @@ export default function LandingPage() {
                   Calculadora de horas trabalhadas
                 </h2>
                 <p className="mt-1 max-w-xl text-sm leading-relaxed text-slate-600 dark:text-slate-400">
-                  Informe suas batidas e veja o total do dia, ou simule a que horas sair para
-                  cumprir a jornada — com sugestões de ajuste na entrada, na saída ou no almoço.
-                  Grátis, direto do navegador, sem login.
+                  Some as batidas do dia, simule a que horas sair para cumprir a jornada e monte um
+                  plano para quitar horas em débito — com sugestões de ajuste na entrada, na saída
+                  ou no almoço. Grátis, direto do navegador, sem login.
                 </p>
               </div>
             </div>
             <div className="shrink-0" id="calculadora">
-              <CalculadoraHoras variante="botao" />
+              <Link href="/calculadora">
+                <Button size="lg">Abrir calculadora</Button>
+              </Link>
             </div>
           </div>
         </section>

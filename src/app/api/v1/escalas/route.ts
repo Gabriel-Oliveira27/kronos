@@ -105,7 +105,17 @@ export const POST = comTratamentoDeErro(async (request: NextRequest) => {
   await registrarEvento({
     tipo: "ESCALA_ALTERADA",
     usuarioId: usuario.id,
-    detalhe: { escalaId: escala.id, usuarioDestino: dados.usuarioId, tipo: dados.tipo },
+    detalhe: {
+      escalaId: escala.id,
+      usuarioDestino: dados.usuarioId,
+      tipo: dados.tipo,
+      mudancas: [{
+        usuario: usuarioDestino.nomeCompleto,
+        data: dados.data.toISOString().slice(0, 10),
+        antes: existente?.tipo ?? null,
+        depois: dados.tipo,
+      }],
+    },
   });
 
   return NextResponse.json(escala, { status: existente ? 200 : 201 });

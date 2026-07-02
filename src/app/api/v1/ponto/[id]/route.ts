@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { exigirUsuario } from "@/lib/rbac";
 import { registroPontoWebSchema } from "@/lib/validations";
 import { comTratamentoDeErro, ApiError } from "@/lib/api";
+import { registrarEvento } from "@/lib/log";
 
 interface Params { params: Promise<{ id: string }> }
 
@@ -28,7 +29,18 @@ export const PUT = comTratamentoDeErro(async (request: NextRequest, { params }: 
 export const DELETE = comTratamentoDeErro(async (_req: NextRequest, { params }: Params) => {
   const { id } = await params;
   const usuario = await exigirUsuario();
-  await checarDono(id, usuario.id);
+  const reg = await checarDono(id, usuario.id);
   await prisma.registroPonto.update({ where: { id }, data: { deletadoEm: new Date() } });
+  await registrarEvento({
+    tipo: "PONTO_EXCLUIDO",
+    usuarioId: usuario.id,
+    detalhe: {
+      id,
+      data: reg.data.toISOString().slice(0, 10),
+      tipoEvento: reg.tipoEvento,
+      horarioReal: reg.horarioReal,
+      origem: reg.origem,
+    },
+  });
   return NextResponse.json({ ok: true });
 });

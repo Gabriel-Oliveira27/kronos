@@ -12,12 +12,20 @@ const STORAGE_KEY = "kronos_ps";
 
 const ROTULOS_TIPO: Record<string, string> = {
   NORMAL: "Normal", PLANTAO: "Plantão", HOME_OFFICE: "Home office",
+  FOLGA: "Folga", DOMINGO_EFETIVO: "Domingo efetivo",
 };
 
 const RING_TIPO: Record<string, string> = {
   NORMAL: "ring-slate-400", PLANTAO: "ring-blue-500",
   HOME_OFFICE: "ring-green-500", FOLGA: "ring-amber-400",
+  DOMINGO_EFETIVO: "ring-purple-500",
 };
+
+// Legenda exibida (home office é legado e fica de fora)
+const LEGENDA: [string, string][] = [
+  ["NORMAL", "Normal"], ["PLANTAO", "Plantão"],
+  ["DOMINGO_EFETIVO", "Domingo efetivo"], ["FOLGA", "Folga"],
+];
 
 interface EscalaItem {
   id: string; usuarioId: string; data: string; tipo: string; observacao: string | null;
@@ -161,7 +169,7 @@ export default function EscalaPublicaPage() {
   return (
     <div className="min-h-screen bg-white dark:bg-[#0B1220]">
       <header className="border-b border-slate-200 dark:border-slate-800/70">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
+        <div className="mx-auto flex max-w-[88rem] items-center justify-between px-4 py-4 sm:px-6">
           <Link href="/"><Logo /></Link>
           <div className="flex items-center gap-2 sm:gap-3">
             <span className="hidden text-xs text-slate-500 sm:inline">Visualização pública</span>
@@ -173,7 +181,7 @@ export default function EscalaPublicaPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+      <main className="mx-auto max-w-[88rem] px-4 py-8 sm:px-6">
         {/* Navegação de mês */}
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <div>
@@ -199,7 +207,7 @@ export default function EscalaPublicaPage() {
         {!carregando && dados && (
           <div className="flex flex-col gap-4 lg:flex-row">
             {/* Lista de membros */}
-            <div className="hidden w-44 shrink-0 lg:block">
+            <div className="hidden w-56 shrink-0 lg:block">
               <div className="rounded-xl border border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-900/60">
                 <div className="border-b border-slate-200 px-3 py-2 dark:border-slate-800">
                   <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
@@ -234,9 +242,9 @@ export default function EscalaPublicaPage() {
                   <div key={d} className="py-1 text-center text-[11px] font-medium tracking-wide text-slate-500">{d}</div>
                 ))}
               </div>
-              <div className="grid grid-cols-7 gap-1">
+              <div className="grid grid-cols-7 gap-1.5">
                 {Array.from({ length: offsetInicio }).map((_, i) => (
-                  <div key={`vazio-${i}`} className="min-h-[80px] rounded-lg bg-slate-100 dark:bg-slate-900/20" />
+                  <div key={`vazio-${i}`} className="min-h-[112px] rounded-xl bg-slate-100 dark:bg-slate-900/20" />
                 ))}
                 {dias.map((dia) => {
                   const numDia = Number(dia.slice(8));
@@ -250,25 +258,25 @@ export default function EscalaPublicaPage() {
                       key={dia}
                       onClick={() => setDiaSelecionado(ehSelecionado ? null : dia)}
                       className={cn(
-                        "min-h-[80px] rounded-lg border p-1.5 text-left transition-all",
+                        "min-h-[112px] rounded-xl border p-2 text-left transition-all",
                         ehSelecionado ? "border-brand-blue bg-brand-blue/10 ring-2 ring-brand-blue/30"
                           : ehHoje ? "border-brand-blue/40 bg-brand-blue/5 dark:bg-brand-blue/10"
                           : "border-slate-200 bg-white hover:border-slate-300 dark:border-slate-800 dark:hover:border-slate-700 dark:bg-slate-900/40"
                       )}
                     >
                       <span className={cn(
-                        "flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-medium",
+                        "flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium",
                         ehHoje ? "bg-brand-blue font-bold text-white" : "text-slate-500 dark:text-slate-400"
                       )}>
                         {numDia}
                       </span>
-                      <div className="mt-1 flex flex-wrap gap-0.5">
-                        {escaladosNoDia.slice(0, 6).map(({ u, e }) => (
-                          <AvatarPublico key={u.id} usuario={u} tipo={e!.tipo} size={18} />
+                      <div className="mt-1.5 flex flex-wrap gap-1">
+                        {escaladosNoDia.slice(0, 8).map(({ u, e }) => (
+                          <AvatarPublico key={u.id} usuario={u} tipo={e!.tipo} size={24} />
                         ))}
-                        {escaladosNoDia.length > 6 && (
-                          <span className="flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-slate-200 px-1 text-[9px] font-medium text-slate-600 dark:bg-slate-700 dark:text-slate-300">
-                            +{escaladosNoDia.length - 6}
+                        {escaladosNoDia.length > 8 && (
+                          <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-slate-200 px-1 text-[10px] font-medium text-slate-600 dark:bg-slate-700 dark:text-slate-300">
+                            +{escaladosNoDia.length - 8}
                           </span>
                         )}
                       </div>
@@ -279,7 +287,7 @@ export default function EscalaPublicaPage() {
 
               {/* Legenda */}
               <div className="mt-4 flex flex-wrap gap-4">
-                {Object.entries(ROTULOS_TIPO).map(([tipo, rotulo]) => (
+                {LEGENDA.map(([tipo, rotulo]) => (
                   <span key={tipo} className="flex items-center gap-1.5 text-xs text-slate-500">
                     <span className={cn("h-2.5 w-2.5 rounded-full ring-2", RING_TIPO[tipo])} />
                     {rotulo}
@@ -289,7 +297,7 @@ export default function EscalaPublicaPage() {
             </div>
 
             {/* Painel lateral do dia selecionado */}
-            <div className="w-full lg:w-72 lg:shrink-0">
+            <div className="w-full lg:w-80 lg:shrink-0">
               {diaSelecionado ? (
                 <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900/60">
                   <p className="text-[10px] uppercase tracking-wider text-slate-400 dark:text-slate-500">Dia selecionado</p>
