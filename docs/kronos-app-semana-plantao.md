@@ -67,9 +67,14 @@
 
 ## Checklist resumido
 
-- [ ] Banner de semana de plantão na Home (abrir app).
-- [ ] Notificação local na segunda-feira da semana de plantão.
-- [ ] `metaParaDia` usa `jornadaPlantao` nos dias úteis da semana de plantão.
-- [ ] Suporte a `DOMINGO_EFETIVO` (cor, rótulo, meta, edição).
-- [ ] Pareamento sáb+dom ao marcar plantão no fim de semana pelo app.
-- [ ] (Opcional) Sincronizar etiquetas personalizadas do setor.
+> **Status (jul/2026): TUDO IMPLEMENTADO** na rodada "atualização do App".
+
+- [x] Banner de semana de plantão na Home (`HomeBanners.tsx`).
+- [x] Notificação local nos dias úteis da semana de plantão (1× por fim de
+      semana, `avisarSemanaPlantao` em `escalasService.ts`).
+- [x] `metaParaDia` usa `jornadaPlantao` nos dias úteis da semana de plantão
+      (contexto montado em `timeTrackingService.montarMetaContexto`).
+- [x] Suporte a `DOMINGO_EFETIVO` (cor roxa, rótulo, abonado no saldo, edição).
+- [x] Pareamento sáb+dom ao marcar/remover plantão pelo app (`salvarEscala`/`removerEscala`).
+- [x] Etiquetas personalizadas do setor sincronizadas (`etiquetasService.ts`,
+      via `GET /setores` que agora devolve `etiquetas`).
