@@ -70,6 +70,10 @@ export const POST = comTratamentoDeErro(async (request: NextRequest) => {
           tipoEvento: r.tipoEvento,
           horarioReal: r.horarioReal || null,
           confirmado: r.confirmado,
+          // O push só envia registros vivos (tombstones vão pelo DELETE), então
+          // um upsert aqui também REVIVE um registro soft-deletado — é o que
+          // permite restaurar uma batida pela lixeira do app (24h).
+          deletadoEm: null,
         },
       })
     )

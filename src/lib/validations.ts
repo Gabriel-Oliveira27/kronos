@@ -177,23 +177,38 @@ const textosPorEvento = z.object({
 });
 
 export const configAppSchema = z.object({
-  notificacoes: z.object({
-    titulo: z.string().max(120).default(""),
-    lead: textosPorEvento,
-    confirm: textosPorEvento,
-    botoes: z.object({
-      confirm: z.string().max(60).default(""),
-      notYet: z.string().max(60).default(""),
-      snooze: z.string().max(60).default(""),
-    }),
-  }),
-  aleatorias: z.object({
-    ativo: z.boolean().default(false),
-    quantidadePorDia: z.number().int().min(0).max(10).default(0),
-    horaInicio: z.number().int().min(0).max(23).default(8),
-    horaFim: z.number().int().min(0).max(23).default(18),
-    mensagens: z.array(z.string().trim().min(1).max(200)).max(50).default([]),
-  }),
+  // Comunicado global: aviso do admin que o app notifica uma vez por
+  // publicação e mantém como banner na Home até o usuário dispensar.
+  comunicado: z
+    .object({
+      ativo: z.boolean().default(false),
+      titulo: z.string().trim().max(120).default(""),
+      mensagem: z.string().trim().max(1000).default(""),
+      atualizadoEm: z.string().nullable().default(null),
+    })
+    .optional(),
+  // Legado (versões antigas do app ainda podem enviar/ler estes campos):
+  notificacoes: z
+    .object({
+      titulo: z.string().max(120).default(""),
+      lead: textosPorEvento,
+      confirm: textosPorEvento,
+      botoes: z.object({
+        confirm: z.string().max(60).default(""),
+        notYet: z.string().max(60).default(""),
+        snooze: z.string().max(60).default(""),
+      }),
+    })
+    .optional(),
+  aleatorias: z
+    .object({
+      ativo: z.boolean().default(false),
+      quantidadePorDia: z.number().int().min(0).max(10).default(0),
+      horaInicio: z.number().int().min(0).max(23).default(8),
+      horaFim: z.number().int().min(0).max(23).default(18),
+      mensagens: z.array(z.string().trim().min(1).max(200)).max(50).default([]),
+    })
+    .optional(),
 });
 
 export const registroPontoWebSchema = z.object({
