@@ -78,6 +78,7 @@ export function EscalasBoard({
   meusSetores,
   setorTemPalavra,
   etiquetasPorSetorJson,
+  somenteLeitura = false,
 }: {
   usuarios: UsuarioResumo[];
   escalasIniciais: EscalaView[];
@@ -89,6 +90,8 @@ export function EscalasBoard({
   setorTemPalavra: boolean;
   /** JSON salvo de Setor.etiquetas por nome de setor. */
   etiquetasPorSetorJson: Record<string, unknown>;
+  /** Usuário comum: só visualiza a escala do(s) próprio(s) setor(es). */
+  somenteLeitura?: boolean;
 }) {
   const [usuarios, setUsuarios] = useState(usuariosIniciais);
   const [escalasBase, setEscalasBase] = useState(escalasIniciais);
@@ -167,16 +170,30 @@ export function EscalasBoard({
 
   const qtdAlteracoes = Object.keys(rascunho).length;
 
+  // ── Abas por setor (somente leitura, quando o usuário tem mais de um) ──
+  const [setorAba, setSetorAba] = useState<string | null>(null);
+  const setoresDisponiveis = useMemo(
+    () => [...new Set(usuarios.map((u) => u.setor || "Sem setor"))].sort((a, b) => a.localeCompare(b)),
+    [usuarios]
+  );
+  const setorAtivo = somenteLeitura && setoresDisponiveis.length > 1
+    ? (setorAba ?? setoresDisponiveis[0])
+    : null;
+  const usuariosVisiveis = useMemo(
+    () => (setorAtivo ? usuarios.filter((u) => (u.setor || "Sem setor") === setorAtivo) : usuarios),
+    [usuarios, setorAtivo]
+  );
+
   // ── Grupos por setor (admin/multi-setor: agrupado com expansão) ──
   const grupos = useMemo(() => {
     const porSetor = new Map<string, UsuarioResumo[]>();
-    for (const u of usuarios) {
+    for (const u of usuariosVisiveis) {
       const s = u.setor || "Sem setor";
       if (!porSetor.has(s)) porSetor.set(s, []);
       porSetor.get(s)!.push(u);
     }
     return Array.from(porSetor.entries()).sort((a, b) => a[0].localeCompare(b[0]));
-  }, [usuarios]);
+  }, [usuariosVisiveis]);
 
   const grupoAberto = (setor: string) => gruposAbertos[setor] ?? true;
 
@@ -210,6 +227,7 @@ export function EscalasBoard({
   }
 
   function atribuir(u: UsuarioResumo, diaISO: string, etiqueta: EtiquetaEscala) {
+    if (somenteLeitura) return;
     const chave = `${u.id}_${diaISO}`;
     const atual = mapa.get(chave);
     const jaAtiva = !!atual && resolverEtiqueta(etiquetasDe(u.setor), atual.etiquetaId, atual.tipo).id === etiqueta.id;
@@ -238,6 +256,7 @@ export function EscalasBoard({
   }
 
   function removerDia(u: UsuarioResumo, diaISO: string) {
+    if (somenteLeitura) return;
     const chave = `${u.id}_${diaISO}`;
     const atual = mapa.get(chave);
     const par = atual?.tipo === "PLANTAO" ? parFimDeSemana(diaISO) : null;
@@ -451,7 +470,7 @@ export function EscalasBoard({
 
       {/* Toolbar: abas + avulso + palavra secreta + exportação */}
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex gap-1">
+        <div className="flex flex-wrap items-center gap-1">
           {([["calendario", "Calendário"], ["geral", "Visualização geral"]] as const).map(([id, label]) => (
             <button key={id} onClick={() => setAba(id)}
               className={cn("rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
@@ -459,8 +478,24 @@ export function EscalasBoard({
               {label}
             </button>
           ))}
+
+          {/* Abas por setor (somente leitura com mais de um setor) */}
+          {setorAtivo && (
+            <div className="ml-2 flex gap-1 border-l border-slate-200 pl-3 dark:border-slate-800">
+              {setoresDisponiveis.map((s) => (
+                <button key={s} onClick={() => setSetorAba(s)}
+                  className={cn("rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+                    setorAtivo === s
+                      ? "bg-slate-200 text-slate-800 dark:bg-slate-700 dark:text-slate-100"
+                      : "text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800")}>
+                  {s}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
+        {!somenteLeitura && (
         <div className="flex items-center gap-2">
           {/* Membro avulso */}
           <div className="relative">
@@ -547,6 +582,7 @@ export function EscalasBoard({
             </div>
           )}
         </div>
+        )}
       </div>
 
       {/* ── Calendário em tela cheia ── */}
@@ -567,7 +603,7 @@ export function EscalasBoard({
               {diasDoMes.map((dia) => {
                 const numDia = Number(dia.slice(8));
                 const ehHoje = dia === hoje;
-                const escaladosNoDia = usuarios
+                const escaladosNoDia = usuariosVisiveis
                   .map((u) => ({ u, e: mapa.get(`${u.id}_${dia}`) }))
                   .filter((x): x is { u: UsuarioResumo; e: { tipo: string; etiquetaId: string | null } } => !!x.e);
 
@@ -585,8 +621,12 @@ export function EscalasBoard({
                         {numDia}
                       </span>
                       <span className="hidden items-center gap-1 rounded-md bg-brand-blue/10 px-1.5 py-0.5 text-[10px] font-semibold text-brand-blue group-hover:inline-flex">
-                        <svg viewBox="0 0 24 24" fill="none" className="h-3 w-3"><path d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                        Editar
+                        {somenteLeitura ? "Ver" : (
+                          <>
+                            <svg viewBox="0 0 24 24" fill="none" className="h-3 w-3"><path d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                            Editar
+                          </>
+                        )}
                       </span>
                     </div>
                     <div className="mt-1.5 flex flex-wrap gap-1">
@@ -617,7 +657,7 @@ export function EscalasBoard({
                     {et.nome}
                   </span>
                 ))}
-                {podeEditarEtiquetas(setor) && (
+                {!somenteLeitura && podeEditarEtiquetas(setor) && (
                   <button onClick={() => abrirEditorEtiquetas(setor)}
                     className="ml-auto text-xs font-medium text-brand-blue hover:underline">
                     Editar etiquetas
@@ -631,7 +671,7 @@ export function EscalasBoard({
 
       {/* ── Visualização geral (antiga "Fim de semana") ── */}
       {aba === "geral" && (
-        <EscalaFimDeSemana ref={exportRef} usuarios={usuarios} escalas={escalasEfetivas} diasDoMes={diasDoMes} mesAtivo={mesAtivo} />
+        <EscalaFimDeSemana ref={exportRef} usuarios={usuariosVisiveis} escalas={escalasEfetivas} diasDoMes={diasDoMes} mesAtivo={mesAtivo} />
       )}
 
       {/* ── Modal de edição do dia ── */}
@@ -642,7 +682,9 @@ export function EscalasBoard({
             {/* Cabeçalho */}
             <div className="flex items-start justify-between gap-3 border-b border-slate-200 p-5 pb-4 dark:border-slate-800">
               <div>
-                <p className="text-[10px] uppercase tracking-wider text-slate-400 dark:text-slate-500">Editando escala</p>
+                <p className="text-[10px] uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                  {somenteLeitura ? "Escala do dia" : "Editando escala"}
+                </p>
                 <p className="font-display text-lg font-semibold capitalize text-slate-900 dark:text-white">
                   {new Date(diaAberto + "T12:00:00Z").toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" })}
                 </p>
@@ -710,7 +752,17 @@ export function EscalasBoard({
                                 </div>
                               </div>
 
-                              {/* Etiquetas ao lado */}
+                              {/* Etiquetas ao lado (leitura: só a etiqueta do dia) */}
+                              {somenteLeitura ? (
+                                etAtual ? (
+                                  <span className="rounded-md px-2 py-1 text-[11px] font-semibold"
+                                    style={{ backgroundColor: `${etAtual.cor}1a`, color: etAtual.cor }}>
+                                    {etAtual.nome}
+                                  </span>
+                                ) : (
+                                  <span className="text-[11px] text-slate-300 dark:text-slate-600">—</span>
+                                )
+                              ) : (
                               <div className="flex flex-wrap items-center gap-1">
                                 {etiquetas.map((et) => {
                                   const ativa = etAtual?.id === et.id;
@@ -745,6 +797,7 @@ export function EscalasBoard({
                                   </button>
                                 )}
                               </div>
+                              )}
                             </div>
                           );
                         })}
@@ -754,19 +807,21 @@ export function EscalasBoard({
                 );
               })}
 
-              <p className="mt-2 text-[11px] text-slate-400 dark:text-slate-500">
-                Plantão em sábado/domingo marca os dois dias. As alterações ficam no rascunho até “Salvar alterações”.
-              </p>
+              {!somenteLeitura && (
+                <p className="mt-2 text-[11px] text-slate-400 dark:text-slate-500">
+                  Plantão em sábado/domingo marca os dois dias. As alterações ficam no rascunho até “Salvar alterações”.
+                </p>
+              )}
             </div>
 
             {/* Rodapé */}
             <div className="flex items-center justify-between gap-2 border-t border-slate-200 p-4 dark:border-slate-800">
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                {qtdAlteracoes > 0 ? `${qtdAlteracoes} alteração(ões) no rascunho` : "Nenhuma alteração pendente"}
+                {somenteLeitura ? "Somente visualização" : qtdAlteracoes > 0 ? `${qtdAlteracoes} alteração(ões) no rascunho` : "Nenhuma alteração pendente"}
               </p>
               <div className="flex gap-2">
                 <Button variant="ghost" size="sm" onClick={() => setDiaAberto(null)}>Fechar</Button>
-                {qtdAlteracoes > 0 && <Button size="sm" onClick={salvarTudo} loading={salvando}>Salvar alterações</Button>}
+                {!somenteLeitura && qtdAlteracoes > 0 && <Button size="sm" onClick={salvarTudo} loading={salvando}>Salvar alterações</Button>}
               </div>
             </div>
           </div>

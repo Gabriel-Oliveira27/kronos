@@ -14,7 +14,9 @@ export const GET = comTratamentoDeErro(async () => {
   await exigirUsuario();
   const setores = await prisma.setor.findMany({ orderBy: { nome: "asc" } });
   return NextResponse.json(
-    setores.map((s) => ({ id: s.id, nome: s.nome, temPalavra: !!s.palavraSecretaHash }))
+    // `etiquetas` vai junto (null = padrão do código) — o app mobile usa para
+    // exibir os nomes/cores personalizados da escala do setor.
+    setores.map((s) => ({ id: s.id, nome: s.nome, temPalavra: !!s.palavraSecretaHash, etiquetas: s.etiquetas }))
   );
 });
 
